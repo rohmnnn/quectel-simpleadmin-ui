@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Watchcat · 5G 云控</title>
+  <link rel="stylesheet" href="css/app.css?v=20261015-2210">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="watchcat">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col">
+      <div class="page-wrap">
+        <div id="status-slot"></div>
+        <main class="page" id="page">
+          <div class="page-head"><h1>Watchcat</h1></div>
+          <section class="empty card">
+            <p>Watchcat（断网自动恢复）暂不可用。设备上的相关接口还没有就绪，修复后会在这里开放设置。</p>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261015-2210"></script>
+</body>
+</html>

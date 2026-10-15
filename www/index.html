@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>首页 · 5G 云控</title>
+  <link rel="stylesheet" href="css/app.css?v=20261015-2210">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="home">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col">
+      <div class="page-wrap">
+        <div id="status-slot"></div>
+        <main class="page" id="page">
+          <div class="page-head">
+            <h1>首页</h1>
+            <div class="refresh">
+              <label for="refresh-input">刷新间隔（秒）</label>
+              <input id="refresh-input" type="number" min="2" inputmode="numeric" value="2">
+              <small>最低 2 秒</small>
+              <button type="button" class="refresh-chip" id="refresh-chip" aria-expanded="false">每 2 秒</button>
+              <button type="button" class="pause-btn" id="pause-btn" aria-pressed="false">暂停</button>
+            </div>
+          </div>
+          <div id="home-skeleton" class="skeleton" aria-hidden="true">
+            <div class="sk lg"></div>
+            <div class="sk"></div>
+            <div class="sk"></div>
+          </div>
+          <div id="home-ready" hidden>
+            <section class="hero">
+              <div class="disc">
+                <svg id="gauge" viewBox="0 0 148 148" aria-hidden="true">
+                  <circle class="g-track" cx="74" cy="74" r="62"></circle>
+                  <circle class="g-val" id="gauge-arc" cx="74" cy="74" r="62"></circle>
+                </svg>
+                <div class="disc-label"><strong id="gauge-pct">—</strong><span class="grade-pill" id="gauge-grade">—</span></div>
+              </div>
+              <div class="hero-mid">
+                <div>
+                  <p class="kicker">连接状态</p>
+                  <h2><i class="live-dot" id="hero-dot"></i><span id="hero-conn">—</span></h2>
+                  <p class="hero-sub" id="hero-up">正在读取设备状态…</p>
+                </div>
+                <i class="hero-div" aria-hidden="true"></i>
+                <div>
+                  <p class="kicker">运营商</p>
+                  <h2 id="hero-op">—</h2>
+                  <p class="hero-sub" id="hero-mode">—</p>
+                </div>
+              </div>
+              <div class="legend">
+                <b>综合信号评价</b>
+                <span data-legend="极好"><i style="background:#15803D"></i>极好</span>
+                <span data-legend="良好"><i style="background:#22C55E"></i>良好</span>
+                <span data-legend="一般"><i style="background:#EAB308"></i>一般</span>
+                <span data-legend="较差"><i style="background:#EF4444"></i>较差</span>
+                <small>根据 RSRP 和 SINR 综合计算，单项参数见下方刻度条</small>
+              </div>
+            </section>
+            <div id="sim-empty" class="empty card" hidden>
+              <p>未检测到已激活的 SIM 卡，请检查 SIM 卡是否插好</p>
+            </div>
+            <div id="home-body">
+              <div class="section-title">
+                <h2>单项参数</h2>
+                <p id="meter-note"></p>
+              </div>
+              <div class="meters">
+                <article class="card meter" data-meter="rsrp">
+                  <header><h3 class="m-name">5G RSRP</h3><span class="m-hint">信号强度</span></header>
+                  <p class="m-val">暂无数据</p>
+                  <div class="tier-names"><span>较差</span><span>一般</span><span>良好</span><span>极好</span></div>
+                  <div class="bar"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><i class="needle"></i></div>
+                  <div class="ticks"></div>
+                  <div class="axis"><span class="lo">差</span><span class="hi">好</span></div>
+                </article>
+                <article class="card meter" data-meter="rsrq">
+                  <header><h3 class="m-name">5G RSRQ</h3><span class="m-hint">信号质量</span></header>
+                  <p class="m-val">暂无数据</p>
+                  <div class="tier-names"><span>较差</span><span>一般</span><span>良好</span><span>极好</span></div>
+                  <div class="bar"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><i class="needle"></i></div>
+                  <div class="ticks"></div>
+                  <div class="axis"><span class="lo">差</span><span class="hi">好</span></div>
+                </article>
+                <article class="card meter" data-meter="sinr">
+                  <header><h3 class="m-name">5G SINR</h3><span class="m-hint">信噪比</span></header>
+                  <p class="m-val">暂无数据</p>
+                  <div class="tier-names"><span>较差</span><span>一般</span><span>良好</span><span>极好</span></div>
+                  <div class="bar"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><i class="needle"></i></div>
+                  <div class="ticks"></div>
+                  <div class="axis"><span class="lo">差</span><span class="hi">好</span></div>
+                </article>
+              </div>
+              <div class="section-title ant-title">
+                <h2>天线</h2>
+                <p>每根天线各自的接收信号，每 2 秒刷新</p>
+                <div class="ant-seg" id="ant-seg" role="tablist" aria-label="制式" hidden><button type="button" role="tab" data-k="LTE">4G</button><button type="button" role="tab" data-k="NR5G" class="is-on" aria-selected="true">5G</button></div>
+              </div>
+              <article class="card ant-card is-empty" id="ant-card"><p class="ant-empty">暂无数据</p></article>
+              <div class="section-title">
+                <h2>信号趋势</h2>
+                <p>仅记录本次打开页面后的数据，刷新或跳页后重新开始</p>
+              </div>
+              <div class="charts">
+                <article class="card chart-card">
+                  <div class="chart-head"><h3>RSRP 趋势 · 最近 5 分钟</h3><span class="muted chart-stats" id="chart-stats-rsrp"></span></div>
+                  <p class="muted chart-sub">每 2 秒一个点，最多保留 150 个点，读不到的时段曲线断开</p>
+                  <div class="plot" id="plot-rsrp"></div>
+                </article>
+                <article class="card chart-card">
+                  <div class="chart-head"><h3>SINR 趋势 · 最近 5 分钟</h3><span class="muted chart-stats" id="chart-stats-sinr"></span></div>
+                  <p class="muted chart-sub">每 2 秒一个点，最多保留 150 个点，读不到的时段曲线断开</p>
+                  <div class="plot" id="plot-sinr"></div>
+                </article>
+              </div>
+              <div class="infos">
+                <article class="card info"><h3><span class="info-ic ic-conn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg></span>连接</h3><p class="num" id="card-up">—</p><span id="card-up-sub"></span></article>
+                <article class="card info"><h3><span class="info-ic ic-net"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M7.1 16.9a7 7 0 0 1 0-9.8M16.9 7.1a7 7 0 0 1 0 9.8"/></svg></span>网络</h3><p class="num" id="card-net">—</p><span id="card-net-sub"></span></article>
+                <article class="card info"><h3><span class="info-ic ic-dev"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span>设备</h3><p class="num" id="card-temp">—</p><span>模块温度</span></article>
+                <article class="card info"><h3><span class="info-ic ic-sim"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><rect x="9" y="11" width="6" height="6" rx="1"/></svg></span>SIM</h3><p class="num" id="card-sim">—</p><span id="card-sim-sub"></span></article>
+              </div>
+              <button type="button" class="ghost" id="detail-toggle" aria-expanded="false">展开详细参数</button>
+              <div id="detail-wrap">
+                <div class="section-title"><h2>详细信号参数</h2></div>
+                <div class="detail-grid">
+                  <section class="card panel"><h3>小区</h3><table>
+                    <tr class="tb-head"><th></th><th>4G</th><th>5G</th></tr>
+                    <tr><th>PCI</th><td id="d-pci-4">—</td><td id="d-pci-5">—</td></tr>
+                    <tr><th>小区 ID</th><td id="d-id-4">—</td><td id="d-id-5">—</td></tr>
+                    <tr><th>TAC</th><td id="d-tac-4">—</td><td id="d-tac-5">—</td></tr>
+                    <tr><th>EARFCN</th><td id="d-earfcn-4">—</td><td id="d-earfcn-5">—</td></tr>
+                    <tr><th>频段</th><td id="d-band-4">—</td><td id="d-band-5">—</td></tr>
+                    <tr><th>带宽</th><td id="d-bw-4">—</td><td id="d-bw-5">—</td></tr>
+                  </table></section>
+                  <section class="card panel"><h3>信号质量</h3><table>
+                    <tr class="tb-head"><th></th><th>4G</th><th>5G</th></tr>
+                    <tr><th>RSRP</th><td id="d-rsrp-4">—</td><td id="d-rsrp-5">—</td></tr>
+                    <tr><th>RSRQ</th><td id="d-rsrq-4">—</td><td id="d-rsrq-5">—</td></tr>
+                    <tr><th>SINR</th><td id="d-sinr-4">—</td><td id="d-sinr-5">—</td></tr>
+                    <tr><th>CSQ</th><td id="d-csq-4">—</td><td id="d-csq-5">—</td></tr>
+                  </table></section>
+                  <section class="card panel"><h3>连接</h3><table>
+                    <tr><th>APN</th><td id="d-apn">—</td></tr>
+                    <tr><th>IPv4</th><td id="d-ip4">—</td></tr>
+                    <tr><th>IPv6</th><td id="d-ip6">—</td></tr>
+                    <tr><th>MCCMNC</th><td id="d-mcc">—</td></tr>
+                  </table></section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261015-2210"></script>
+  <script src="js/signal.js?v=20261015-2210"></script>
+  <script src="js/home.js?v=20261015-2210"></script>
+</body>
+</html>

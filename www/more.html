@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>更多 · 5G 云控</title>
+  <link rel="stylesheet" href="css/app.css?v=20261015-2210">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="more">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col">
+      <div class="page-wrap">
+        <div id="status-slot"></div>
+        <main class="page" id="page">
+          <div class="more-head"><h1>更多</h1></div>
+          <div class="more-list">
+            <a href="/settings.html">设置</a>
+            <a href="/deviceinfo.html">设备信息</a>
+            <a href="/watchcat.html">Watchcat <em class="badge">暂不可用</em></a>
+            <button type="button" class="more-row" data-theme-row>
+              <span>深色模式</span>
+              <span class="switch" data-theme-switch role="switch" aria-checked="false" aria-label="深色模式，已关闭"></span>
+            </button>
+          </div>
+          <small class="version">界面版本 SimpleAdminRev-Alpha-0.9</small>
+        </main>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261015-2210"></script>
+</body>
+</html>
