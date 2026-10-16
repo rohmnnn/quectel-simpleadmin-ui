@@ -1,5 +1,26 @@
+# Certificates, private keys and credentials
 *.pem
 *.key
 *.crt
+*.p12
 .htpasswd
+
+# Local backups and deployment artifacts
+www.bak-*/
+*.b64
+*.tar
+*.tar.gz
+*.tgz
+
+# Internal working docs at the repo root (specs, task sheets, deploy notes).
+# Only the two READMEs are published.
+/*.md
+!/README.md
+!/README.zh-CN.md
+
+# OS / editor
 .DS_Store
+._*
+Thumbs.db
+.vscode/
+.idea/
