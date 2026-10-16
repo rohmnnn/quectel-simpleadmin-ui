@@ -5,8 +5,9 @@
 *.p12
 .htpasswd
 
-# Local backups and deployment artifacts
+# Local backups, original SimpleAdmin pages kept for reference, deployment artifacts
 www.bak-*/
+/原版/
 *.b64
 *.tar
 *.tar.gz
