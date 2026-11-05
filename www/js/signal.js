@@ -115,12 +115,33 @@ function createLiveState() {
       const provider = [spn[2], spn[1], spn[0]].find(value => value && value !== '-');
       this.network_provider = provider ? (alphabet === 1 ? this.ucs2ToUtf8(provider) : provider) : '-';
       this.mccmnc = spn[4] || '-';
-      this.apn = fields('+CGCONTRDP:')[2] || '-';
+      const contexts = lines.filter(line => line.startsWith('+CGCONTRDP:'))
+        .map(line => this.atFields(line));
+      this.apn = contexts.length ? contexts[0][2] || '-' : '-';
+      const setAddress = (family, value) => {
+        const address = String(value || '').trim().split(/[,\s]/)[0].split('/')[0];
+        if (family === 'IPV4' && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(address) &&
+          address.split('.').every(part => Number(part) <= 255)) this.ipv4 = address;
+        if (family === 'IPV6' && /^[\da-f:]+$/i.test(address) && address.includes(':')) this.ipv6 = address;
+      };
+      for (const context of contexts) {
+        const localAddress = context[3] || '';
+        localAddress.split(/[,\s]+/).forEach(address => {
+          if (address.includes(':')) setAddress('IPV6', address);
+          else if (address.includes('.')) setAddress('IPV4', address);
+        });
+      }
       for (const line of lines.filter(line => line.startsWith('+QMAP:'))) {
         const parts = this.atFields(line);
         const family = parts.findIndex(part => /^IPV[46]$/i.test(part));
-        if (family >= 0 && parts[family + 1]) {
-          this[parts[family].toUpperCase() === 'IPV4' ? 'ipv4' : 'ipv6'] = parts[family + 1];
+        if (family < 0) continue;
+        const addressFamily = parts[family].toUpperCase();
+        const candidates = [parts[4], ...parts.slice(family + 1)];
+        for (const candidate of candidates) {
+          const previous = addressFamily === 'IPV4' ? this.ipv4 : this.ipv6;
+          setAddress(addressFamily, candidate);
+          const current = addressFamily === 'IPV4' ? this.ipv4 : this.ipv6;
+          if (current !== previous || current !== '-') break;
         }
       }
       const nw = fields('+QNWINFO:');
