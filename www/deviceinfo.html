@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Device info · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="device">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col"><div class="page-wrap">
+      <div id="status-slot"></div>
+      <main class="page" id="page">
+        <div class="page-head"><h1>Device info</h1><button class="secondary" type="button" id="device-refresh">Refresh information</button></div>
+        <section class="card">
+          <h2>Modem and network details</h2>
+          <div class="table-wrap">
+            <table class="data-table"><tbody>
+              <tr><th>Manufacturer</th><td id="info-manufacturer">—</td></tr>
+              <tr><th>Model</th><td id="info-model">—</td></tr>
+              <tr><th>Firmware</th><td id="info-firmware">—</td></tr>
+              <tr><th>IMSI</th><td id="info-imsi">—</td></tr>
+              <tr><th>ICCID</th><td id="info-iccid">—</td></tr>
+              <tr><th>IMEI</th><td id="info-imei">—</td></tr>
+              <tr><th>LAN IP</th><td id="info-lan">—</td></tr>
+              <tr><th>WWAN IPv4</th><td id="info-ipv4">—</td></tr>
+              <tr><th>WWAN IPv6</th><td id="info-ipv6">—</td></tr>
+              <tr><th>Phone number</th><td id="info-phone">—</td></tr>
+            </tbody></table>
+          </div>
+          <p class="result" id="device-result" role="status" aria-live="polite"></p>
+        </section>
+        <section class="card">
+          <h2>Change IMEI</h2>
+          <p class="section-note">Changing the IMEI is a modem configuration change. The modem will be restarted after a successful update.</p>
+          <div class="form-grid">
+            <label class="field"><span>New 15-digit IMEI</span><input id="new-imei" type="text" inputmode="numeric" maxlength="15" autocomplete="off"></label>
+            <div class="form-actions"><button class="danger-button" type="button" id="imei-apply">Update IMEI and restart</button><button class="secondary" type="button" id="device-reboot">Restart modem</button></div>
+            <p class="result field-wide" id="imei-result" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+        <section class="card" id="terminal">
+          <h2>AT command</h2>
+          <p class="section-note">Custom commands are sent only after confirmation.</p>
+          <div class="form-grid">
+            <label class="field field-wide"><span>Command</span><input id="device-at-command" type="text" value="ATI" autocomplete="off"></label>
+            <div class="form-actions"><button class="primary" type="button" id="device-at-send">Send command</button></div>
+            <p class="result field-wide" id="device-at-result" role="status" aria-live="polite"></p>
+            <label class="field field-wide"><span>Response</span><textarea id="device-at-output" rows="6" readonly></textarea></label>
+          </div>
+        </section>
+      </main>
+    </div></div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261105-2300"></script>
+  <script src="js/deviceinfo.js?v=20261105-2300"></script>
+</body>
+</html>

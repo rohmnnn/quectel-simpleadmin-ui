@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>更多 · 5G 云控</title>
-  <link rel="stylesheet" href="css/app.css?v=20261015-2210">
+  <title>More · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -21,22 +21,25 @@
       <div class="page-wrap">
         <div id="status-slot"></div>
         <main class="page" id="page">
-          <div class="more-head"><h1>更多</h1></div>
+          <div class="more-head"><h1>More</h1></div>
           <div class="more-list">
-            <a href="/settings.html">设置</a>
-            <a href="/deviceinfo.html">设备信息</a>
-            <a href="/watchcat.html">Watchcat <em class="badge">暂不可用</em></a>
+            <a href="/settings.html">Settings</a>
+            <a href="/settings.html#terminal">AT terminal</a>
+            <a href="/settings.html#ttl">TTL</a>
+            <a href="/deviceinfo.html">Device info</a>
+            <a href="/watchcat.html">Watchcat</a>
             <button type="button" class="more-row" data-theme-row>
-              <span>深色模式</span>
-              <span class="switch" data-theme-switch role="switch" aria-checked="false" aria-label="深色模式，已关闭"></span>
+              <span>Dark mode</span>
+              <span class="switch" data-theme-switch role="switch" aria-checked="false" aria-label="Dark mode, off"></span>
             </button>
           </div>
-          <small class="version">界面版本 SimpleAdminRev-Alpha-0.9</small>
+          <small class="version">SimpleAdmin Rev-Alpha-0.9 · By iamromulan</small>
+          <small class="version">MIT License with Additional Stipulations · See README for terms.</small>
         </main>
       </div>
     </div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261015-2210"></script>
+  <script src="js/shell.js?v=20261105-2300"></script>
 </body>
 </html>

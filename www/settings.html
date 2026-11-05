@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Settings · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="settings">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col"><div class="page-wrap">
+      <div id="status-slot"></div>
+      <main class="page" id="page">
+        <div class="page-head"><h1>Settings</h1></div>
+        <section class="card">
+          <h2>Mobile router and USB networking</h2>
+          <p class="section-note">These actions send the same modem commands as the original SimpleAdmin settings page. Network interfaces may reconnect after applying a change.</p>
+          <div class="form-actions">
+            <button type="button" class="primary" data-at='AT+QMAP="MPDN_RULE",0,1,0,1,1,"FF:FF:FF:FF:FF:FF"'>Apply MPDN rule 1</button>
+            <button type="button" class="primary" data-at='AT+QMAP="MPDN_RULE",0,1,0,3,1,"FF:FF:FF:FF:FF:FF"'>Apply MPDN rule 3</button>
+            <button type="button" class="secondary" data-at='AT+QMAP="MPDN_RULE",0;+QMAPWAC=1'>Apply QMAP WAC rule</button>
+          </div>
+          <div class="form-grid">
+            <label class="field"><span>USB networking mode</span><select id="usbnet-mode"><option value="">Select a mode</option><option value="0">RMNET</option><option value="1">ECM</option><option value="2">MBIM</option><option value="3">RNDIS</option></select></label>
+            <div class="form-actions"><button type="button" class="primary" id="usbnet-apply">Apply USB mode</button></div>
+            <div class="form-actions"><button type="button" class="secondary" data-at='AT+QMAP="DHCPV4DNS","enable"'>Enable DHCPv4 DNS</button><button type="button" class="secondary" data-at='AT+QMAP="DHCPV4DNS","disable"'>Disable DHCPv4 DNS</button></div>
+          </div>
+          <p class="result" id="settings-result" role="status" aria-live="polite"></p>
+          <pre class="at-output raw-response" id="settings-output">Reading current modem settings…</pre>
+        </section>
+        <section class="card" id="ttl">
+          <h2>TTL override</h2>
+          <p class="section-note">Set the TTL value to 0 to disable the override.</p>
+          <div class="form-grid">
+            <label class="field"><span>TTL value</span><input id="ttl-value" type="number" min="0" step="1"></label>
+            <div class="form-actions"><button type="button" class="primary" id="ttl-apply">Apply TTL</button><button type="button" class="secondary" id="ttl-refresh">Refresh status</button></div>
+            <p class="result field-wide" id="ttl-result" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+        <section class="card" id="terminal">
+          <h2>AT terminal</h2>
+          <p class="section-note">Custom commands are sent through the existing user AT-command endpoint. Confirm each command before sending.</p>
+          <div class="form-grid">
+            <label class="field field-wide"><span>AT command</span><input id="user-at-command" type="text" value="ATI" autocomplete="off"></label>
+            <div class="form-actions"><button type="button" class="primary" id="user-at-send">Send command</button><button type="button" class="secondary" id="at-reset">Reset modem (AT&F)</button><button type="button" class="danger-button" id="modem-reboot">Restart modem</button></div>
+            <p class="result field-wide" id="terminal-result" role="status" aria-live="polite"></p>
+            <label class="field field-wide"><span>AT response</span><textarea id="terminal-output" rows="8" readonly></textarea></label>
+          </div>
+        </section>
+      </main>
+    </div></div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261105-2300"></script>
+  <script src="js/settings.js?v=20261105-2300"></script>
+</body>
+</html>

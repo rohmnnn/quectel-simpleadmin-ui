@@ -1,25 +1,25 @@
 /**
- * 全站外壳：侧栏 / 图标栏 / 底部标签、状态条、主题。
- * 不发任何 /cgi-bin 请求。状态条只读首页写入的 sessionStorage。
+ * Global shell: sidebar, tablet rail, phone tabs, status bar, and themes.
+ * Makes no CGI requests. The status bar reads sessionStorage written by home.
  */
 (function () {
   var THEME_KEY = "theme";
   var STATUS_KEY = "cpe-status";
   var NAV = [
-    { group: "网络", id: "home", href: "/", label: "首页", icon: "home" },
-    { group: "网络", id: "network", href: "/network.html", label: "网络", icon: "radio" },
-    { group: "网络", id: "scan", href: "/scanner.html", label: "扫网", icon: "scan" },
-    { group: "网络", id: "sms", href: "/sms.html", label: "短信", icon: "sms" },
-    { group: "设备", id: "settings", href: "/settings.html", label: "设置", icon: "gear" },
-    { group: "设备", id: "device", href: "/deviceinfo.html", label: "设备信息", icon: "chip" },
-    { group: "设备", id: "watchcat", href: "/watchcat.html", label: "Watchcat", icon: "pulse", badge: "暂不可用" }
+    { group: "Network", id: "home", href: "/", label: "Home", icon: "home" },
+    { group: "Network", id: "network", href: "/network.html", label: "Network", icon: "radio" },
+    { group: "Network", id: "scan", href: "/scanner.html", label: "Cell scan", icon: "scan" },
+    { group: "Network", id: "sms", href: "/sms.html", label: "SMS", icon: "sms" },
+    { group: "Device", id: "settings", href: "/settings.html", label: "Settings", icon: "gear" },
+    { group: "Device", id: "device", href: "/deviceinfo.html", label: "Device info", icon: "chip" },
+    { group: "Device", id: "watchcat", href: "/watchcat.html", label: "Watchcat", icon: "pulse" }
   ];
   var TABS = [
-    { id: "home", href: "/", label: "首页", icon: "home" },
-    { id: "network", href: "/network.html", label: "网络", icon: "radio" },
-    { id: "scan", href: "/scanner.html", label: "扫网", icon: "scan" },
-    { id: "sms", href: "/sms.html", label: "短信", icon: "sms" },
-    { id: "more", href: "/more.html", label: "更多", icon: "more" }
+    { id: "home", href: "/", label: "Home", icon: "home" },
+    { id: "network", href: "/network.html", label: "Network", icon: "radio" },
+    { id: "scan", href: "/scanner.html", label: "Scan", icon: "scan" },
+    { id: "sms", href: "/sms.html", label: "SMS", icon: "sms" },
+    { id: "more", href: "/more.html", label: "More", icon: "more" }
   ];
 
   function icon(name) {
@@ -72,7 +72,7 @@
     var sw = document.querySelector("[data-theme-switch]");
     if (sw) {
       sw.setAttribute("aria-checked", dark ? "true" : "false");
-      sw.setAttribute("aria-label", dark ? "深色模式，已开启" : "深色模式，已关闭");
+      sw.setAttribute("aria-label", dark ? "Dark mode, on" : "Dark mode, off");
     }
   }
 
@@ -85,10 +85,10 @@
   }
 
   function ageText(data, live) {
-    if (!data || !data.at) return live ? "正在读取设备状态…" : "尚未读取";
+    if (!data || !data.at) return live ? "Reading device status…" : "Not read yet";
     var sec = Math.max(0, Math.round((Date.now() - data.at) / 1000));
-    if (data.refreshing) return "正在刷新…";
-    return '<span class="t-full">' + (live ? "数据更新于 " : "上次读取于 ") + "</span>" + sec + " 秒前";
+    if (data.refreshing) return "Refreshing…";
+    return '<span class="t-full">' + (live ? "Updated " : "Last read ") + "</span>" + sec + "s ago";
   }
 
   function renderStatus() {
@@ -105,7 +105,7 @@
             '<span class="pill" id="st-sim">—</span>' +
             '<span class="pill" id="st-op">—</span>' +
             '<span class="pill" id="st-mode">—</span>' +
-            '<span class="pill" id="st-sig"><span class="pill-k">信号 </span><b class="sig-pct"></b> <span class="sig-word pill-v">—</span></span>' +
+            '<span class="pill" id="st-sig"><span class="pill-k">Signal </span><b class="sig-pct"></b> <span class="sig-word pill-v">—</span></span>' +
           "</div>" +
           '<div class="status-time" id="st-time"><i class="dot"></i><span></span></div>' +
         "</div>" +
@@ -115,16 +115,16 @@
     bar.classList.toggle("is-stale", !!stale);
     bar.classList.toggle("is-live", live);
     document.getElementById("st-conn").textContent = data && data.conn ? data.conn : "—";
-    document.getElementById("st-conn").classList.toggle("is-ok", !!data && data.conn === "已连接");
+    document.getElementById("st-conn").classList.toggle("is-ok", !!data && data.conn === "Connected");
     document.getElementById("st-sim").innerHTML = '<span class="pill-k">SIM </span><span class="pill-v"></span>';
     document.querySelector("#st-sim .pill-v").textContent = data && data.sim ? data.sim : "—";
     document.getElementById("st-op").textContent = data && data.op ? data.op : "—";
-    document.getElementById("st-mode").innerHTML = '<span class="pill-k">网络模式 </span><span class="pill-v"></span>';
+    document.getElementById("st-mode").innerHTML = '<span class="pill-k">Mode </span><span class="pill-v"></span>';
     document.querySelector("#st-mode .pill-v").textContent = data && data.mode ? data.mode : "—";
     document.querySelector("#st-sig .sig-pct").textContent = data && data.pct != null && data.pct !== "" ? data.pct + "%" : "";
     var word = document.querySelector("#st-sig .sig-word");
     var grade = data && data.grade ? data.grade : "";
-    var tiers = { "极好": "var(--tier-1)", "良好": "var(--tier-2)", "一般": "var(--tier-3)", "较差": "var(--tier-4)" };
+    var tiers = { "Excellent": "var(--tier-1)", "Good": "var(--tier-2)", "Fair": "var(--tier-3)", "Poor": "var(--tier-4)" };
     word.textContent = grade || "—";
     word.style.color = tiers[grade] || "var(--tx3)";
     var time = document.getElementById("st-time");
@@ -148,7 +148,7 @@
     var aside = document.getElementById("sidebar");
     var tabs = document.getElementById("tabbar");
     if (aside) {
-      var groups = ["网络", "设备"];
+      var groups = ["Network", "Device"];
       var nav = groups.map(function (name) {
         var items = NAV.filter(function (item) { return item.group === name; }).map(function (item) {
           return '<a class="nav-item' + linkClass(item.id, page) + '" href="' + item.href + '" aria-label="' + item.label + '"' +
@@ -160,19 +160,19 @@
         return '<div class="nav-group"><p class="nav-label">' + name + "</p>" + items + "</div>";
       }).join("");
       aside.innerHTML =
-        '<a class="brand" href="/"><i class="brand-logo">' + icon("radio") + "</i><span><strong>5G 云控</strong><small>192.168.225.1</small></span></a>" +
+        '<a class="brand" href="/"><i class="brand-logo">' + icon("radio") + "</i><span><strong>SimpleAdmin</strong><small>192.168.225.1</small></span></a>" +
         '<div class="nav-scroll" id="nav-scroll">' + nav + "</div>" +
         '<div class="side-foot" id="side-foot">' +
-          '<p class="nav-label">外观</p>' +
-          '<div class="theme-seg" role="group" aria-label="外观">' +
-            '<button type="button" data-theme-choice="light" title="切换为浅色模式">' + icon("sun") + '浅色</button>' +
-            '<button type="button" data-theme-choice="dark" title="切换为深色模式">' + icon("moon") + '深色</button>' +
+          '<p class="nav-label">Appearance</p>' +
+          '<div class="theme-seg" role="group" aria-label="Appearance">' +
+            '<button type="button" data-theme-choice="light" title="Switch to light mode">' + icon("sun") + 'Light</button>' +
+            '<button type="button" data-theme-choice="dark" title="Switch to dark mode">' + icon("moon") + 'Dark</button>' +
           "</div>" +
           '<div class="theme-icons">' +
-            '<button type="button" data-theme-choice="light" title="切换为浅色模式" aria-label="切换为浅色模式">' + icon("sun") + "</button>" +
-            '<button type="button" data-theme-choice="dark" title="切换为深色模式" aria-label="切换为深色模式">' + icon("moon") + "</button>" +
+            '<button type="button" data-theme-choice="light" title="Switch to light mode" aria-label="Switch to light mode">' + icon("sun") + "</button>" +
+            '<button type="button" data-theme-choice="dark" title="Switch to dark mode" aria-label="Switch to dark mode">' + icon("moon") + "</button>" +
           "</div>" +
-          "<small class=\"version\">界面版本 SimpleAdminRev-Alpha-0.9</small>" +
+          '<small class="version">SimpleAdmin Rev-Alpha-0.9 · <a href="https://github.com/iamromulan/quectel-rgmii-toolkit">By iamromulan</a></small>' +
         "</div>";
       aside.querySelectorAll("[data-theme-choice]").forEach(function (btn) {
         btn.addEventListener("click", function () {
@@ -189,8 +189,10 @@
       window.addEventListener("resize", syncMask);
     }
     if (tabs) {
+      var tabPage = TABS.some(function (item) { return item.id === page; }) ? page : "more";
       tabs.innerHTML = TABS.map(function (item) {
-        return '<a class="' + (item.id === page ? "is-current" : "") + '" href="' + item.href + '" aria-label="' + item.label + '">' +
+        return '<a class="' + (item.id === tabPage ? "is-current" : "") + '" href="' + item.href + '"' +
+          (item.id === tabPage ? ' aria-current="page"' : "") + ' aria-label="' + item.label + '">' +
           icon(item.icon) + "<span>" + item.label + "</span></a>";
       }).join("");
     }

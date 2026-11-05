@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Network · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="network">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col"><div class="page-wrap">
+      <div id="status-slot"></div>
+      <main class="page" id="page">
+        <div class="page-head"><h1>Network</h1><button class="secondary" type="button" id="network-refresh">Refresh settings</button></div>
+        <section class="card">
+          <h2>Supported band selection</h2>
+          <p class="section-note">Choose radio access technology and select the supported bands to lock. The selected list is sent using the modem's existing QNWPREFCFG command.</p>
+          <div class="form-grid">
+            <label class="field"><span>Band set</span><select id="networkModeBand"><option value="LTE">LTE</option><option value="NSA">NR5G-NSA</option><option value="SA">NR5G-SA</option></select></label>
+            <label class="check-field"><input type="checkbox" id="providerBands">Use UE capability bands</label>
+            <div class="pill-list field-wide" id="band-options"><span class="muted">Loading supported bands…</span></div>
+            <div class="form-actions"><button type="button" class="primary" id="band-apply">Apply band selection</button><button type="button" class="secondary" id="band-restore">Restore default bands</button></div>
+            <p class="result field-wide" id="band-result" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Network preferences</h2>
+          <div class="form-grid">
+            <label class="field"><span>APN</span><input id="apn" type="text" autocomplete="off"></label>
+            <label class="field"><span>APN IP type</span><select id="apn-ip"><option value="1">IPv4 only</option><option value="2">IPv6 only</option><option value="3">IPv4v6</option><option value="4">P2P protocol</option></select></label>
+            <label class="field"><span>SIM slot</span><select id="sim-slot"><option value="1">SIM 1</option><option value="2">SIM 2</option></select></label>
+            <label class="field"><span>Preferred network mode</span><select id="pref-mode"><option value="AUTO">Automatic</option><option value="LTE">LTE only</option><option value="LTE:NR5G">NR5G-NSA</option><option value="NR5G">NR5G-SA</option></select></label>
+            <label class="field"><span>NR5G mode</span><select id="nr-mode"><option value="0">Enable all</option><option value="2">Disable NR5G-NSA</option><option value="1">Disable NR5G-SA</option></select></label>
+            <div class="form-actions"><button type="button" class="primary" id="preferences-apply">Apply preferences</button></div>
+            <p class="result field-wide" id="preferences-result" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Cell locking</h2>
+          <div class="form-grid">
+            <label class="field"><span>LTE cells to lock (1–10)</span><input id="lte-count" type="number" min="1" max="10" value="1"></label>
+            <div class="field-wide form-grid" id="lte-lock-fields"></div>
+            <label class="field"><span>NR5G EARFCN</span><input id="nr-earfcn" type="number" min="0"></label>
+            <label class="field"><span>NR5G PCI</span><input id="nr-pci" type="number" min="0"></label>
+            <label class="field"><span>NR5G SCS</span><input id="nr-scs" type="number" min="0"></label>
+            <label class="field"><span>NR5G band</span><input id="nr-band" type="number" min="1"></label>
+            <div class="form-actions"><button type="button" class="primary" id="lte-lock-apply">Lock LTE cells</button><button type="button" class="primary" id="nr-lock-apply">Lock NR5G cell</button><button type="button" class="secondary" id="lte-unlock">Unlock LTE</button><button type="button" class="secondary" id="nr-unlock">Unlock NR5G</button></div>
+            <p class="result field-wide" id="cell-result" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+        <section class="card"><h2>Current modem response</h2><pre class="at-output raw-response" id="network-output">Reading network settings…</pre></section>
+      </main>
+    </div></div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261105-2300"></script>
+  <script src="js/network.js?v=20261105-2300"></script>
+</body>
+</html>

@@ -7,17 +7,16 @@
 
 # Local backups, original SimpleAdmin pages kept for reference, deployment artifacts
 www.bak-*/
-/原版/
+/original/
 *.b64
 *.tar
 *.tar.gz
 *.tgz
 
 # Internal working docs at the repo root (specs, task sheets, deploy notes).
-# Only the two READMEs are published.
+# Only the English README is published.
 /*.md
 !/README.md
-!/README.zh-CN.md
 
 # OS / editor
 .DS_Store

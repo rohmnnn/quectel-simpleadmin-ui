@@ -1,6 +1,6 @@
 /**
- * 从盒子正在运行的首页原样抽出，不改阈值、不改评价算法。
- * 来源：https://192.168.225.1/  index.html
+ * Extracted from the running device home page without changing thresholds or scoring.
+ * Source: https://192.168.225.1/ index.html
  *   atFields                         367-382
  *   parseNetworkInfo                 384-455
  *   resetNetworkInfo                 457-498
@@ -17,12 +17,11 @@
  *   calculateSINRPercentage          610-615
  *   calculateSignalPercentage        617-619
  *   signalQuality                    621-623
- * 评价函数返回「优秀 / 良好 / 一般 / 差 / 无信号」。
- * 界面文案把「优秀」显示为「极好」、「差」显示为「较差」，阈值未改。
+ * The scoring function returns Excellent, Good, Fair, Poor, or No signal.
  */
 function createLiveState() {
   return {
-    sim: "未激活",
+    sim: "Inactive",
     temperature: "0",
     active_sim: "-",
     network_provider: "-",
@@ -44,7 +43,7 @@ function createLiveState() {
     nrBw: "-",
     pcc_pci: "-",
     scc_pci: "-",
-    signalAssessment: "未知",
+    signalAssessment: "Unknown",
     csq: "-",
     rssi: "-",
     cellID: "-",
@@ -63,9 +62,9 @@ function createLiveState() {
     sinrLTEPercentage: "0%",
     sinrNRPercentage: "0%",
     signalPercentage: "0",
-    internetConnection: "未连接",
+    internetConnection: "Disconnected",
     lastUpdate: "",
-    uptime: "未知",
+    uptime: "Unknown",
     networkFetchPending: false,
 
     atFields(line) {
@@ -97,10 +96,10 @@ function createLiveState() {
         'nrArfcn', 'nrBand', 'nrBw']) this[key] = '-';
       this.clearLTEData();
       this.clearNR5GData();
-      this.signalAssessment = '未知';
+      this.signalAssessment = 'Unknown';
 
       const simStatus = fields('+QSIMSTAT:')[1];
-      if (simStatus === '1') this.sim = '已激活';
+      if (simStatus === '1') this.sim = 'Active';
       else if (simStatus === '0') { this.resetNetworkInfo(); return; }
       this.csq = fields('+CSQ:')[0] || '-';
       const temperatures = lines.filter(line => line.startsWith('+QTEMP:'))
@@ -155,7 +154,7 @@ function createLiveState() {
           this.sinrNRPercentage = this.calculateSINRPercentage(parseInt(this.sinrNR));
           this.rsrqNRPercentage = this.calculateRSRQPercentage(parseInt(this.rsrqNR));
           this.scc_pci = nr[3] || '-';
-          // NR5G-NSA 行：MCC, MNC, PCI, RSRP, SINR, RSRQ, ARFCN, band, NR_DL_bandwidth（Quectel 手册顺序，待真机核对）
+          // NR5G-NSA fields: MCC, MNC, PCI, RSRP, SINR, RSRQ, ARFCN, band, NR_DL_bandwidth.
           this.nrArfcn = nr[7] || '-';
           this.nrBand = /^\d+$/.test(nr[8] || '') ? 'n' + nr[8] : '-';
           this.nrBw = /^\d+$/.test(nr[9] || '') ? this.calculate_nr_bw(parseInt(nr[9])) + ' MHz' : '-';
@@ -165,12 +164,12 @@ function createLiveState() {
     },
 
     /**
-     * +QRSRP / +QRSRQ / +QSINR：每行 PRX, DRX, RX2, RX3 四路，行末是制式（LTE / NR5G）。
-     * 按行末制式分组，不按行号取。真机 SA 下已核对（2026-10-15）：
+     * +QRSRP / +QRSRQ / +QSINR rows contain PRX, DRX, RX2, RX3 and a RAT (LTE / NR5G).
+     * Group by the RAT at the end of each row. SA was checked on-device (2026-10-15):
      *   +QRSRP: -89,-90,-103,-87,NR5G
-     * NSA 下两行的情况尚未在真机上抓到。
-     * 占位值（-32768 一类）或非数字记为 null，界面显示「无信号」。
-     * 返回 { NR5G: { rsrp: [4], rsrq: [4] | null, sinr: [4] | null }, LTE: {...} }，读不到时为 {}。
+     * The two-row NSA response has not yet been captured on-device.
+     * Placeholder values (such as -32768) and non-numeric fields become null.
+     * Returns { NR5G: { rsrp: [4], rsrq: [4] | null, sinr: [4] | null }, LTE: {...} }, or {}.
      */
     parseAntennas(lines, nwMode) {
       const out = {};
@@ -193,9 +192,9 @@ function createLiveState() {
     },
 
     resetNetworkInfo() {
-      this.network_mode = "网络已断开";
+      this.network_mode = "Network disconnected";
       this.lastUpdate = new Date().toLocaleString();
-      this.sim = "未激活";
+      this.sim = "Inactive";
       this.temperature = "0";
       this.active_sim = "-";
       this.network_provider = "-";
@@ -216,7 +215,7 @@ function createLiveState() {
       this.nrBw = "-";
       this.pcc_pci = "-";
       this.scc_pci = "-";
-      this.signalAssessment = "未知";
+      this.signalAssessment = "Unknown";
       this.csq = "-";
       this.rssi = "-";
       this.cellID = "-";
@@ -235,7 +234,7 @@ function createLiveState() {
       this.sinrLTEPercentage = "0%";
       this.sinrNRPercentage = "0%";
       this.signalPercentage = "0";
-      this.internetConnection = "未连接";
+      this.internetConnection = "Disconnected";
       this.lastUpdate = new Date().toLocaleString();
     },
 
@@ -244,14 +243,14 @@ function createLiveState() {
       const minimum = networkType === 'NR5G-SA' ? 15 : 17;
       if (servingCellParts.length < minimum || !/^[0-9a-f]+$/i.test(servingCellParts[6] || '')) return;
       if (networkType === "NR5G-SA") {
-        this.clearLTEData();  // 切换到 NR5G-SA 时，重置 LTE 相关数据
+        this.clearLTEData();  // Clear LTE values when switching to NR5G-SA.
         this.parseNR5GInfo(servingCellParts);
       } else if (networkType === "LTE") {
-        this.clearNR5GData();  // 切换到 LTE 时，重置 NR5G-SA 相关数据
+        this.clearNR5GData();  // Clear NR5G-SA values when switching to LTE.
         this.parseLTEInfo(servingCellParts);
       }
     },
-    // 清除 NR5G-SA 相关的数据
+    // Clear NR5G-SA values.
     clearNR5GData() {
       this.rsrqNR = '-';
       this.rsrqNRPercentage = '0';
@@ -264,7 +263,7 @@ function createLiveState() {
       this.rssi = "-";
     },
 
-    // 清除 LTE 相关的数据
+    // Clear LTE values.
     clearLTEData() {
       this.rsrqLTE = '-';
       this.rsrqLTEPercentage = '0';
@@ -361,7 +360,7 @@ function createLiveState() {
     },
 
     signalQuality(percentage) {
-      return percentage >= 80 ? "优秀" : percentage >= 60 ? "良好" : percentage >= 40 ? "一般" : percentage >= 0 ? "差" : "无信号";
+      return percentage >= 80 ? "Excellent" : percentage >= 60 ? "Good" : percentage >= 40 ? "Fair" : percentage >= 0 ? "Poor" : "No signal";
     },
   };
 }

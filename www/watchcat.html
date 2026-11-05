@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Watchcat · 5G 云控</title>
-  <link rel="stylesheet" href="css/app.css?v=20261015-2210">
+  <title>Watchcat · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -22,14 +22,26 @@
         <div id="status-slot"></div>
         <main class="page" id="page">
           <div class="page-head"><h1>Watchcat</h1></div>
-          <section class="empty card">
-            <p>Watchcat（断网自动恢复）暂不可用。设备上的相关接口还没有就绪，修复后会在这里开放设置。</p>
+          <section class="card">
+            <h2>Connectivity monitoring</h2>
+            <p>Configure Watchcat to monitor a host and restart the connection after repeated ping failures.</p>
+            <p class="muted">Settings are read from and applied through the device's existing Watchcat CGI endpoints.</p>
+            <form id="watchcat-form" class="form-grid">
+              <label class="field"><span>Watchcat</span><select name="enabled"><option value="disable">Disabled</option><option value="enable">Enabled</option></select></label>
+              <label class="field"><span>Host to monitor</span><input name="track_ip" type="text" inputmode="decimal" placeholder="1.1.1.1" required></label>
+              <label class="field"><span>Ping timeout (seconds)</span><input name="ping_timeout" type="number" min="1" value="30" required></label>
+              <label class="field"><span>Ping failures before action</span><input name="ping_failure_count" type="number" min="1" value="3" required></label>
+              <div class="form-actions"><button class="primary" type="submit">Apply settings</button><button class="ghost" type="button" id="watchcat-refresh">Refresh status</button></div>
+              <p class="result field-wide" id="watchcat-result" role="status" aria-live="polite"></p>
+              <label class="field field-wide"><span>Device status</span><textarea id="watchcat-logs" rows="5" readonly></textarea></label>
+            </form>
           </section>
         </main>
       </div>
     </div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261015-2210"></script>
+  <script src="js/shell.js?v=20261105-2300"></script>
+  <script src="js/watchcat.js?v=20261105-2300"></script>
 </body>
 </html>

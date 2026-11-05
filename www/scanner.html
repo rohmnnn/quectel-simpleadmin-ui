@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cell scan · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="scan">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col"><div class="page-wrap">
+      <div id="status-slot"></div>
+      <main class="page" id="page">
+        <div class="page-head"><h1>Cell scan</h1></div>
+        <section class="card">
+          <h2>Available networks</h2>
+          <p class="section-note">Run a modem network scan to search for available cells. Scans are started only when requested.</p>
+          <label class="field"><span>Show results</span><select id="scan-filter"><option value="all">LTE and NR5G</option><option value="NR5G">NR5G only</option><option value="LTE">LTE only</option></select></label>
+          <div class="form-actions"><button class="primary" id="scan-run" type="button">Start network scan</button></div>
+          <p class="result" id="scan-result" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>RAT</th><th>Operator (MCCMNC)</th><th>Band</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th></tr></thead><tbody id="scan-rows"><tr><td colspan="6">No scan has been run.</td></tr></tbody></table>
+          </div>
+          <details><summary>Raw modem response</summary><pre class="at-output raw-response" id="scan-output"></pre></details>
+        </section>
+        <section class="card">
+          <h2>Serving and neighboring cells</h2>
+          <p class="section-note">Query the modem for current LTE and NR5G neighboring-cell measurements.</p>
+          <div class="form-actions"><button class="primary" id="neighbor-read" type="button">Read cell measurements</button></div>
+          <p class="result" id="neighbor-result" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>RAT</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th></tr></thead><tbody id="neighbor-rows"><tr><td colspan="4">No cell measurements have been read.</td></tr></tbody></table>
+          </div>
+          <details><summary>Raw modem response</summary><pre class="at-output raw-response" id="neighbor-output"></pre></details>
+        </section>
+      </main>
+    </div></div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261105-2300"></script>
+  <script src="js/scanner.js?v=20261105-2300"></script>
+</body>
+</html>

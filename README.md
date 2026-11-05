@@ -1,124 +1,110 @@
 # Quectel SimpleAdmin UI
 
-English | [简体中文](README.zh-CN.md)
-
-A redesigned, responsive web interface for **SimpleAdmin**, the web admin panel of
+An English, responsive redesign of **SimpleAdmin**, the device web interface from
 [iamromulan/quectel-rgmii-toolkit](https://github.com/iamromulan/quectel-rgmii-toolkit/tree/SDXLEMUR)
-(SDXLEMUR branch). It is a full front-end rewrite of a Chinese-localized SimpleAdmin build
-(Rev-Alpha-0.9). The interface language is Simplified Chinese.
-
-> **Status: work in progress.** Only the app shell and the home page have been rewritten.
-> The other pages (network, scan, SMS, settings, device info) are still the original
-> SimpleAdmin pages on the device.
+(SDXLEMUR branch). This front-end rewrite retains the original device CGI endpoints and modem
+commands; it does not replace or modify the device-side CGI scripts.
 
 ## Attribution
 
-SimpleAdmin and quectel-rgmii-toolkit are created by **iamromulan**:
+SimpleAdmin and quectel-rgmii-toolkit were created by **iamromulan**:
 <https://github.com/iamromulan/quectel-rgmii-toolkit>.
 
-This project is derived from that work through a Chinese-localized build and is distributed
-under the same license. The AT response parsing and signal scoring code in
-[`www/js/signal.js`](www/js/signal.js) is taken verbatim from the original SimpleAdmin home page.
-
+This project is derived from that work. The AT response parsing and signal scoring code in
+[`www/js/signal.js`](www/js/signal.js) is taken from the original SimpleAdmin home page.
 This project is not affiliated with or endorsed by iamromulan or Quectel.
 
 ## Features
 
-**App shell**
+- Responsive shell: desktop sidebar, tablet icon rail, and phone tab bar with a More menu.
+- Light and dark themes, with system preference support and a saved user preference.
+- Home dashboard with SIM/network status, signal scoring, RSRP/RSRQ/SINR meters, antenna
+  readings, five-minute trends, uptime, temperature, and detailed cell/network values.
+- Network configuration: supported LTE/NR band selection, APN, SIM slot, preferred mode,
+  NR mode, and LTE/NR cell locking.
+- Cell scan and neighboring-cell AT queries.
+- SMS inbox, message deletion, and UCS2 multipart sending.
+- Device/modem information, custom AT terminal, confirmed IMEI update, and modem restart.
+- Settings for QMAP, DHCPv4 DNS, USB networking, TTL override, and AT commands.
+- Watchcat status and configuration through the device's existing endpoints.
+- Read-only requests on page load. Changes and other potentially writing AT commands require
+  confirmation and show the modem's response.
+- Polling pauses while the browser tab is hidden; the home refresh interval has a two-second
+  minimum.
+- Plain HTML, CSS, and JavaScript. No build step, framework, dependency, or CDN is required.
 
-- Sidebar on desktop (≥ 1024 px), icon rail on tablet (768–1023 px), bottom tab bar on phones.
-- Light and dark themes. Follows the system setting until the user picks one; the choice is
-  stored in `localStorage`.
-- Status bar showing how long ago data was last read.
-
-**Home page**
-
-- Overall signal gauge. The score combines RSRP and SINR with the same algorithm as the
-  original page, so readings match the old UI.
-- Tier meters for RSRP, RSRQ and SINR.
-- Per-antenna readings (PRX / DRX / RX2 / RX3) with a 4G / 5G switch.
-- RSRP and SINR trend charts for the last 5 minutes (up to 150 points). Gaps where no data
-  was read are left blank instead of being drawn as zero.
-- Summary cards: connection, network, module temperature, SIM.
-- Collapsible detail tables: PCI, cell ID, TAC, EARFCN, band, bandwidth, CSQ, APN,
-  IPv4 / IPv6, MCCMNC.
-- Adjustable refresh interval (minimum 2 s), pause button, and automatic pause while the
-  browser tab is hidden.
-
-**Watchcat page**: placeholder only. It calls no endpoint, because Watchcat does not work on
-the tested firmware.
-
-## Design principles
-
-- **Presentation layer only.** Uses only CGI endpoints that already exist on the device. No new
-  endpoints, no changes to AT commands or device configuration.
-- **Read-only home page.** It only sends query AT commands.
-- **No build step, no dependencies.** Plain HTML, CSS and JavaScript.
-
-## Endpoints used
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /cgi-bin/get_atcommand?atcmd=…` | One batched AT query per refresh: `+QSIMSTAT?` `+CSQ` `+QTEMP` `+QUIMSLOT?` `+QSPN` `+CGCONTRDP=1` `+QMAP="WWANIP"` `+QENG="servingcell"` `+QNWINFO` `+QRSRP` `+QRSRQ` `+QSINR` |
-| `GET /cgi-bin/get_ping` | Latency (only when a SIM is active) |
-| `GET /cgi-bin/get_uptime` | Uptime |
-
-## Compatibility
-
-| Item | Tested with |
-|---|---|
-| Modem | Quectel RG520N-CN |
-| Firmware | RG520NCNAAR03A01M4G |
-| Panel | SimpleAdmin Rev-Alpha-0.9 (Chinese build), lighttpd 1.4.73 |
-| Browser | Chrome on macOS |
-
-Other SDXLEMUR modems (for example RM520N-GL) and other browsers have not been tested yet.
+The upstream `simpleadmin/www` inventory is in [docs/PORTING_PLAN.md](docs/PORTING_PLAN.md).
+The upstream reference contains no Tailscale page or CGI endpoint, so this UI does not invent a
+Tailscale integration. The AT terminal and TTL controls are sections of the upstream Settings
+page, not separate upstream pages.
 
 ## Repository layout
 
 ```text
 www/
-├── index.html       Home page
-├── more.html        "More" menu (phone tab bar)
-├── watchcat.html    Watchcat placeholder
-├── css/app.css      Design tokens, layout, components
+├── index.html       Home dashboard
+├── more.html        Phone More menu and license/about notice
+├── network.html     Network preferences, bands, and cell locking
+├── scanner.html     Network and neighboring-cell scans
+├── sms.html         SMS inbox and sending
+├── settings.html    AT terminal, device settings, and TTL
+├── deviceinfo.html  Device and modem information
+├── watchcat.html    Watchcat configuration and status
+├── css/
+│   └── app.css      Design tokens, layout, and shared components
 └── js/
-    ├── shell.js     Navigation, theme, status bar
-    ├── signal.js    AT parsing and signal scoring (verbatim from the original page)
-    └── home.js      Home page polling and rendering
+    ├── shell.js     Navigation, theme, and status bar
+    ├── signal.js    AT parsing and signal scoring from upstream
+    ├── home.js      Home polling and rendering
+    ├── network.js   Network reads and confirmed configuration
+    ├── scanner.js   On-demand cell queries
+    ├── sms.js       SMS parsing, deletion, and sending
+    ├── settings.js  Settings, TTL, and AT terminal
+    ├── deviceinfo.js Device information and confirmed device actions
+    └── watchcat.js  Watchcat status and configuration
+docs/
+└── PORTING_PLAN.md  Upstream page, script, and CGI inventory
 ```
+
+`README.zh-CN.md` has been removed because the interface and documentation are now English.
+
+## Compatibility
+
+| Item | Target / validation |
+|---|---|
+| Modem and firmware | Quectel RG520N-CN, RG520NCNAAR03A01M4G (upstream reference target) |
+| Panel | SimpleAdmin Rev-Alpha-0.9, lighttpd 1.4.73 (upstream reference) |
+| Browser layout | Locally checked in Chromium at 390, 768, and 1280 CSS-pixel viewport widths |
+
+Device-side CGI and modem behavior have not been tested in this environment. Other SDXLEMUR
+modems (including RM520N-GL), firmware variants, and browsers remain unverified. Settings and
+optional features depend on the existing device CGI scripts and modem firmware.
 
 ## Deploying to the device
 
-You need a root shell on the modem (adb, SSH or the ttyd web console) and SimpleAdmin
-installed at `/usrdata/simpleadmin`. Only the seven files above are added or replaced. Leave
-everything else on the device untouched: other pages, `cgi-bin/`, `.htpasswd`, certificates
-and `lighttpd.conf`.
+Back up `/usrdata/simpleadmin/www` before deployment. The following deploy list contains all
+files in this redesign; leave the device's existing `cgi-bin/`, `.htpasswd`, certificates, and
+`lighttpd.conf` untouched.
 
-1. Pack the files on your computer. `COPYFILE_DISABLE=1` keeps macOS from adding `._*` files.
+```sh
+COPYFILE_DISABLE=1 tar -C www -cf ui.tar .
+```
 
-   ```sh
-   COPYFILE_DISABLE=1 tar -C www -cf ui.tar .
-   ```
+Copy `ui.tar` to `/usrdata/simpleadmin/`, then extract it on the device:
 
-2. Copy `ui.tar` to `/usrdata/simpleadmin/` on the device with whatever method you have.
-   Avoid `/tmp`, which may be cleared.
+```sh
+cd /usrdata/simpleadmin
+cp -a www "www.bak-$(date +%Y%m%d-%H%M)"
+tar -xf ui.tar -C www
+cd www
+FILES="index.html more.html network.html scanner.html sms.html settings.html deviceinfo.html watchcat.html css/app.css js/shell.js js/signal.js js/home.js js/network.js js/scanner.js js/sms.js js/settings.js js/deviceinfo.js js/watchcat.js"
+chown root:root $FILES
+chmod 644 $FILES
+rm ../ui.tar
+```
 
-3. On the device, back up and extract:
-
-   ```sh
-   cd /usrdata/simpleadmin
-   cp -a www "www.bak-$(date +%Y%m%d-%H%M)"
-   tar -xf ui.tar -C www
-   cd www
-   FILES="index.html more.html watchcat.html css/app.css js/shell.js js/signal.js js/home.js"
-   chown root:root $FILES
-   chmod 644 $FILES
-   rm ../ui.tar
-   ```
-
-4. Hard-refresh the browser. When you change CSS or JS, bump the `?v=` query string in the
-   three HTML files so browsers fetch the new files.
+Hard-refresh the browser after deployment. CSS and JavaScript cache-busting query strings are
+updated together in every page.
 
 **Rollback**
 
@@ -128,48 +114,34 @@ mv www www.broken
 cp -a www.bak-YYYYMMDD-HHMM www
 ```
 
-## Removing the "Not secure" warning (optional)
+## Security and device configuration
 
-The device ships with a self-signed certificate, so browsers mark it as not secure. One way
-to fix it:
-
-1. On your computer, create a local CA with [mkcert](https://github.com/FiloSottile/mkcert) and
-   issue a certificate whose SAN includes `IP:192.168.225.1` (or your device IP).
-2. Back up `/usrdata/simpleadmin/server.crt` and `server.key`, replace them with the new pair,
-   keep the original file permissions, and run `systemctl reload lighttpd`.
-3. Import the CA root certificate on every client device.
-
-The CA private key (`rootCA-key.pem`) must stay on your computer. Never copy it to the device
-and never commit certificates or keys; `.gitignore` already excludes `*.pem`, `*.key` and
-`*.crt`.
+Use at your own risk. This UI sends commands to the modem and applies device settings only
+after confirmation. Changes can interrupt connectivity or alter device behavior. The UI does
+not add or change CGI endpoints. Do not commit certificates or private keys.
 
 ## Roadmap
 
-- [x] App shell
-- [x] Home page
-- [ ] Network
-- [ ] Scan
-- [ ] SMS
-- [ ] Settings
-- [ ] Device info
-- [ ] Watchcat (blocked: not working on the tested firmware)
-
-## Disclaimer
-
-Use at your own risk. The home page is read-only, but pages still under development may send
-AT commands that change modem settings. Quectel is a trademark of Quectel Wireless Solutions
-Co., Ltd.
+- [x] English UI and responsive app shell
+- [x] Home dashboard and status bar
+- [x] Network settings, band selection, and cell locking
+- [x] Cell scan and neighboring-cell queries
+- [x] SMS inbox, deletion, and sending
+- [x] Settings, AT terminal, and TTL
+- [x] Device information and confirmed IMEI/restart controls
+- [x] Watchcat status and settings ported from upstream
+- [x] Navigation and mobile More menu
+- [x] Deployment file list and upstream inventory
 
 ## License
 
 Same as upstream: **MIT License with Additional Stipulations**. See [LICENSE](LICENSE).
-On top of the standard MIT terms:
+In addition to the standard MIT terms:
 
-1. You must give clear, visible attribution to the original author (iamromulan), with a link to
-   the original repository.
-2. The software and any modified version must not be sold or charged for. Selling physical
-   products that include it is allowed with attribution.
-3. Modifications must be made available on request, including source code and the
-   documentation needed to understand them.
+1. Give clear, visible attribution to iamromulan with a link to the original repository.
+2. Do not sell or charge for the software or a modified version. Selling physical products that
+   include it is allowed with attribution.
+3. Make modifications available on request, including source code and documentation needed to
+   understand them.
 
 Because of the no-sale clause, this is not an OSI-approved open-source license.
