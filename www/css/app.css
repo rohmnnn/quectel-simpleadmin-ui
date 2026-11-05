@@ -144,7 +144,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 }
 .status-time.is-warn { color: var(--warn); }
 .banner {
-  margin-top: 8px;
+  margin: 8px 16px 0;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(245, 158, 11, .15);
@@ -418,6 +418,7 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 }
 @media (min-width: 768px) {
   .status { height: 56px; padding: 0 32px; }
+  .banner { margin-right: 24px; margin-left: 24px; }
   .t-full { display: inline; }
   .refresh-chip { display: none; }
   .app {
@@ -479,6 +480,7 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 }
 
 @media (min-width: 1024px) {
+  .banner { margin-right: 32px; margin-left: 32px; }
   .app { grid-template-columns: var(--sb-w) 1fr; }
   .nav-group + .nav-group { border-top: 0; margin-top: 0; padding-top: 0; }
   .sidebar { padding: 28px 20px 24px; }
