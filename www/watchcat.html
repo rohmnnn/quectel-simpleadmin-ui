@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Watchcat · SimpleAdmin</title>
-  <link rel="stylesheet" href="css/app.css?v=20261105-2300">
+  <link rel="stylesheet" href="css/app.css?v=20261105-2331">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -31,7 +31,7 @@
               <label class="field"><span>Host to monitor</span><input name="track_ip" type="text" inputmode="decimal" placeholder="1.1.1.1" required></label>
               <label class="field"><span>Ping timeout (seconds)</span><input name="ping_timeout" type="number" min="1" value="30" required></label>
               <label class="field"><span>Ping failures before action</span><input name="ping_failure_count" type="number" min="1" value="3" required></label>
-              <div class="form-actions"><button class="primary" type="submit">Apply settings</button><button class="ghost" type="button" id="watchcat-refresh">Refresh status</button></div>
+              <div class="form-actions"><button class="primary" type="submit">Apply settings</button><button class="secondary" type="button" id="watchcat-refresh">Refresh status</button></div>
               <p class="result field-wide" id="watchcat-result" role="status" aria-live="polite"></p>
               <label class="field field-wide"><span>Device status</span><textarea id="watchcat-logs" rows="5" readonly></textarea></label>
             </form>
