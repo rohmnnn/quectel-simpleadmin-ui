@@ -7,6 +7,10 @@ commands; it does not replace or modify the device-side CGI scripts.
 
 ## Attribution
 
+This repository is a redesign fork of
+[Keeson1223/quectel-simpleadmin-ui](https://github.com/Keeson1223/quectel-simpleadmin-ui).
+The original SimpleAdmin UI design in the forked project is credited to Keeson1223.
+
 SimpleAdmin and quectel-rgmii-toolkit were created by **iamromulan**:
 <https://github.com/iamromulan/quectel-rgmii-toolkit>.
 
