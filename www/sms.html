@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>SMS · SimpleAdmin</title>
-  <link rel="stylesheet" href="css/app.css?v=20261105-2335">
+  <link rel="stylesheet" href="css/app.css?v=20261105-2344">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -31,7 +31,7 @@
         </section>
         <section class="card">
           <h2>Send a message</h2>
-          <form id="sms-form" class="form-grid">
+          <form id="sms-form" class="form-grid sms-compose">
             <label class="field"><span>Recipient's number</span><input id="sms-number" type="tel" autocomplete="tel" required></label>
             <label class="field"><span>SMS content</span><textarea id="sms-message" rows="4" required></textarea></label>
             <div class="form-actions"><button class="primary" type="submit" id="sms-send">Send SMS</button><span class="muted" id="sms-count"></span></div>
