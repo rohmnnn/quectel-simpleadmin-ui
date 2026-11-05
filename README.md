@@ -87,20 +87,20 @@ files in this redesign; leave the device's existing `cgi-bin/`, `.htpasswd`, cer
 `lighttpd.conf` untouched.
 
 ```sh
-COPYFILE_DISABLE=1 tar -C www -cf ui.tar .
+zip -r www.zip www
 ```
 
-Copy `ui.tar` to `/usrdata/simpleadmin/`, then extract it on the device:
+Copy `www.zip` to `/usrdata/simpleadmin/`, then extract it on the device:
 
 ```sh
 cd /usrdata/simpleadmin
 cp -a www "www.bak-$(date +%Y%m%d-%H%M)"
-tar -xf ui.tar -C www
+unzip -o www.zip
 cd www
 FILES="index.html more.html network.html scanner.html sms.html settings.html deviceinfo.html watchcat.html css/app.css js/shell.js js/signal.js js/home.js js/network.js js/scanner.js js/sms.js js/settings.js js/deviceinfo.js js/watchcat.js"
 chown root:root $FILES
 chmod 644 $FILES
-rm ../ui.tar
+rm ../www.zip
 ```
 
 Hard-refresh the browser after deployment. CSS and JavaScript cache-busting query strings are
