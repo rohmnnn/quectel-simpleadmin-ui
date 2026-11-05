@@ -5,7 +5,7 @@
  * higher tier with >= comparisons.
  */
 (function () {
-  var AT_CMD = 'AT+QSIMSTAT?;+CSQ;+QTEMP;+QUIMSLOT?;+QSPN;+CGCONTRDP=1;+QMAP="WWANIP";+QENG="servingcell";+QNWINFO;+QRSRP;+QRSRQ;+QSINR';
+  var AT_CMD = 'AT+QSIMSTAT?;+CSQ;+QTEMP;+QUIMSLOT?;+QSPN;+CGCONTRDP=1;+QENG="servingcell";+QNWINFO;+QRSRP;+QRSRQ;+QSINR';
   var WINDOW_MS = 5 * 60 * 1000;
   var MAX_POINTS = 150;
   var GRADE_COLOR = { "Excellent": "#15803D", "Good": "#22C55E", "Fair": "#EAB308", "Poor": "#EF4444", "No signal": "#A3ABBE" };
