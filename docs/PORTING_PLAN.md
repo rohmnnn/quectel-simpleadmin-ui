@@ -49,3 +49,22 @@ Watchcat page.
 - The upstream tree has no Tailscale HTML page or Tailscale CGI endpoint. Tailscale
   was therefore not added. The AT terminal and TTL controls are sections of the
   upstream Settings page rather than separate upstream pages.
+
+
+## Verified against the upstream source (SDXLEMUR branch, 2026-11-08)
+
+Upstream `simpleadmin/www` contains: `index`, `network`, `scanner`, `sms`, `settings`, `deviceinfo`, `watchcat`,
+`watchcat_backup` pages and the CGI scripts `get_atcommand`, `user_atcommand`, `send_sms`, `get_ping`,
+`get_uptime`, `get_ttl_status`, `set_ttl`, `get_watchcat_status`, `watchcat_maker`, `set_watchcat`.
+There is no Tailscale page. The inventory above is complete.
+
+Known differences from upstream:
+
+| Upstream | This UI |
+|---|---|
+| Scanner page has a "Live Signal" card and signal-strength icons per row | Not ported (status bar and Home show signal) |
+| Full MCC+MNC operator table in the scanner | Ported as `js/operators.js` |
+| "Console" link (`/console`, ttyd) in the navigation | Added |
+| Device info shows the SimpleAdmin version | Not ported |
+| One chained AT line per page action | One command per request (a rejected command no longer hides the others) |
+| `user_atcommand` (broken upstream) | Not used |

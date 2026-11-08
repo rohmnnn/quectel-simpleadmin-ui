@@ -12,9 +12,8 @@
   function loadStatus() {
     refreshButton.disabled = true;
     setResult("Reading Watchcat status…");
-    fetch("/cgi-bin/get_watchcat_status", { cache: "no-store" }).then(function (response) {
-      if (!response.ok) throw new Error("Request failed (HTTP " + response.status + ").");
-      return response.json();
+    AT.fetchText("/cgi-bin/get_watchcat_status", 10000).then(function (body) {
+      try { return JSON.parse(body); } catch (e) { throw new Error("The device returned an invalid Watchcat status."); }
     }).then(function (data) {
       var config = data && data.watchcat && typeof data.watchcat === "object" ? data.watchcat : data;
       if (!config || typeof config !== "object") throw new Error("The device returned an invalid Watchcat status.");
@@ -65,10 +64,7 @@
       PING_TIMEOUT: timeout,
       PING_FAILURE_COUNT: failures
     });
-    fetch("/cgi-bin/watchcat_maker?" + params, { cache: "no-store" }).then(function (response) {
-      if (!response.ok) throw new Error("Request failed (HTTP " + response.status + ").");
-      return response.text();
-    }).then(function (text) {
+    AT.fetchText("/cgi-bin/watchcat_maker?" + params, 20000).then(function (text) {
       if (/invalid|must be|error/i.test(text)) throw new Error(text.trim());
       document.getElementById("watchcat-logs").value = text.trim();
       setResult(text.trim() || "Watchcat settings applied.", "success");

@@ -33,6 +33,8 @@
           <h2>Send a message</h2>
           <form id="sms-form" class="form-grid sms-compose">
             <label class="field"><span>Recipient's number</span><input id="sms-number" type="tel" autocomplete="tel" required></label>
+            <label class="field"><span>Default country code (optional)</span><input id="sms-country" type="text" inputmode="tel" placeholder="e.g. +62" autocomplete="off"></label>
+            <p class="muted field-wide">With a country code set, a number starting with 0 is sent in international format. Leave it empty to send the number exactly as typed. The final number is shown before sending.</p>
             <label class="field"><span>SMS content</span><textarea id="sms-message" rows="4" required></textarea></label>
             <div class="form-actions"><button class="primary" type="submit" id="sms-send">Send SMS</button><span class="muted" id="sms-count"></span></div>
             <p class="result field-wide" id="sms-send-result" role="status" aria-live="polite"></p>
@@ -42,7 +44,8 @@
     </div></div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261105-2300"></script>
-  <script src="js/sms.js?v=20261105-2300"></script>
+  <script src="js/shell.js?v=20261107-1"></script>
+  <script src="js/at.js?v=20261107-1"></script>
+  <script src="js/sms.js?v=20261107-1"></script>
 </body>
 </html>

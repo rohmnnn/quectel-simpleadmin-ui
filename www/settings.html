@@ -34,8 +34,15 @@
             <div class="form-actions"><button type="button" class="primary" id="usbnet-apply">Apply USB mode</button></div>
             <div class="form-actions"><button type="button" class="secondary" data-at='AT+QMAP="DHCPV4DNS","enable"'>Enable DHCPv4 DNS</button><button type="button" class="secondary" data-at='AT+QMAP="DHCPV4DNS","disable"'>Disable DHCPv4 DNS</button></div>
           </div>
+          <p class="section-note" id="settings-support"></p>
           <p class="result" id="settings-result" role="status" aria-live="polite"></p>
           <pre class="at-output raw-response" id="settings-output">Reading current modem settings…</pre>
+        </section>
+        <section class="card" id="interface">
+          <h2>Interface status</h2>
+          <p class="section-note">Read-only queries for the network interface, using commands documented for the RG50xQ. The RGMII query can take up to 20 seconds.</p>
+          <div class="form-actions"><button type="button" class="secondary" id="iface-refresh">Read interface status</button></div>
+          <pre class="result at-output raw-response" id="iface-output">Press the button to read the interface status.</pre>
         </section>
         <section class="card" id="ttl">
           <h2>TTL override</h2>
@@ -60,7 +67,8 @@
     </div></div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261105-2300"></script>
-  <script src="js/settings.js?v=20261105-2300"></script>
+  <script src="js/shell.js?v=20261107-1"></script>
+  <script src="js/at.js?v=20261107-1"></script>
+  <script src="js/settings.js?v=20261107-1"></script>
 </body>
 </html>

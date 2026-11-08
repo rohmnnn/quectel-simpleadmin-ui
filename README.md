@@ -54,10 +54,13 @@ www/
 ├── settings.html    AT terminal, device settings, and TTL
 ├── deviceinfo.html  Device and modem information
 ├── watchcat.html    Watchcat configuration and status
+├── diagnostics.html Read-only AT command compatibility check
 ├── css/
 │   └── app.css      Design tokens, layout, and shared components
 └── js/
     ├── shell.js     Navigation, theme, and status bar
+    ├── at.js        Shared modem requests: one-at-a-time queue, timeouts, restart handling
+    ├── operators.js MCC+MNC operator names (from the upstream scanner)
     ├── signal.js    AT parsing and signal scoring from upstream
     ├── home.js      Home polling and rendering
     ├── network.js   Network reads and confirmed configuration
@@ -65,7 +68,8 @@ www/
     ├── sms.js       SMS parsing, deletion, and sending
     ├── settings.js  Settings, TTL, and AT terminal
     ├── deviceinfo.js Device information and confirmed device actions
-    └── watchcat.js  Watchcat status and configuration
+    ├── watchcat.js  Watchcat status and configuration
+    └── diagnostics.js Read-only AT command checks and copyable report
 docs/
 └── PORTING_PLAN.md  Upstream page, script, and CGI inventory
 ```
@@ -94,14 +98,17 @@ files in this redesign; leave the device's existing `cgi-bin/`, `.htpasswd`, cer
 zip -r www.zip www
 ```
 
-Copy `www.zip` to `/usrdata/simpleadmin/`, then extract it on the device:
-
+Copy `www.zip` to `/usrdata/simpleadmin/`
+```sh
+adb push .\www.zip /usrdata/simpleadmin
+```
+Then extract it on the device:
 ```sh
 cd /usrdata/simpleadmin
 cp -a www "www.bak-$(date +%Y%m%d-%H%M)"
 unzip -o www.zip
 cd www
-FILES="index.html more.html network.html scanner.html sms.html settings.html deviceinfo.html watchcat.html css/app.css js/shell.js js/signal.js js/home.js js/network.js js/scanner.js js/sms.js js/settings.js js/deviceinfo.js js/watchcat.js"
+FILES="index.html more.html network.html scanner.html sms.html settings.html deviceinfo.html watchcat.html diagnostics.html css/app.css js/shell.js js/at.js js/operators.js js/signal.js js/home.js js/network.js js/scanner.js js/sms.js js/settings.js js/deviceinfo.js js/watchcat.js js/diagnostics.js"
 chown root:root $FILES
 chmod 644 $FILES
 rm ../www.zip
@@ -149,3 +156,16 @@ In addition to the standard MIT terms:
    understand them.
 
 Because of the no-sale clause, this is not an OSI-approved open-source license.
+
+## Quectel RG501Q-EU notes
+
+This interface was written for another module family. The RG50xQ AT manual (V1.1.1) does not list
+several commands the original pages use (`+QRSRP`, `+QRSRQ`, `+QSINR`, `+CGCONTRDP`, `+QMAP`,
+`+QCFG="usbnet"`, `+QNWLOCK`, `+QSCAN`, `+QCCID`, `+EGMR`). The pages therefore:
+
+- send one AT command per request, through one shared queue (`js/at.js`), with timeouts;
+- show "Not supported" for a feature whose query the modem rejects, instead of failing silently;
+- send restart commands (`AT+CFUN=1,1`) fire-and-forget, then wait for the modem to answer again.
+
+Open **Diagnostics** to see exactly which commands your modem answers, and copy the report.
+Details: [docs/RG501Q-EU.md](docs/RG501Q-EU.md).

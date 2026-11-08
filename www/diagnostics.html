@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Diagnostics · SimpleAdmin</title>
+  <link rel="stylesheet" href="css/app.css?v=20261105-2344">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved === "light" || saved === "dark" ? saved : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
+</head>
+<body data-page="diagnostics">
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-col"><div class="page-wrap">
+      <div id="status-slot"></div>
+      <main class="page" id="page">
+        <div class="page-head"><h1>Diagnostics</h1></div>
+        <section class="card">
+          <h2>AT command compatibility</h2>
+          <p class="section-note">Sends the read-only queries used by this interface, one at a time, and shows which ones your modem answers. Nothing is changed. Commands marked "not in manual" are not documented for the RG50xQ.</p>
+          <div class="form-actions"><button class="primary" type="button" id="diag-run">Run diagnostics</button><button class="secondary" type="button" id="diag-stop" disabled>Stop</button><button class="secondary" type="button" id="diag-copy">Copy report</button></div>
+          <label class="check-field"><input type="checkbox" id="diag-redact" checked>Hide identifiers (IMEI, IMSI, ICCID, phone number, IP addresses)</label>
+          <label class="check-field"><input type="checkbox" id="diag-slow">Include slow queries (AT+QETH="rgmii", up to 20 s)</label>
+          <p class="result" id="diag-result" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>Command</th><th>Result</th><th>Response</th></tr></thead><tbody id="diag-rows"><tr><td colspan="3">Not run yet.</td></tr></tbody></table>
+          </div>
+          <label class="field field-wide"><span>Report</span><textarea id="diag-report" rows="10" readonly></textarea></label>
+        </section>
+      </main>
+    </div></div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <script src="js/shell.js?v=20261107-1"></script>
+  <script src="js/at.js?v=20261107-1"></script>
+  <script src="js/diagnostics.js?v=20261107-1"></script>
+</body>
+</html>

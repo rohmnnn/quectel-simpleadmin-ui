@@ -5,7 +5,52 @@
  * higher tier with >= comparisons.
  */
 (function () {
-  var AT_CMD = 'AT+QSIMSTAT?;+CSQ;+QTEMP;+QUIMSLOT?;+QSPN;+CGCONTRDP=1;+QENG="servingcell";+QNWINFO;+QRSRP;+QRSRQ;+QSINR';
+  // The poll sends these queries in one request. If the modem rejects some of them (this UI was
+  // written for another module; the RG50xQ manual does not list +QRSRP/+QRSRQ/+QSINR/+CGCONTRDP),
+  // the first failing poll tests every command on its own and drops the rejected ones for the session.
+  // Order matters: a chained AT line stops at the first rejected command, so the likely-rejected ones go last.
+  var COMMANDS = ["AT+QSIMSTAT?", "AT+CSQ", "AT+QTEMP", "AT+QSPN", 'AT+QENG="servingcell"', "AT+QNWINFO", "AT+CGPADDR=1",
+    "AT+QUIMSLOT?", "AT+CGCONTRDP=1", "AT+QRSRP", "AT+QRSRQ", "AT+QSINR"];
+  var DROPPED_KEY = "home-dropped-commands";
+  var probed = false;
+
+  function droppedCommands() {
+    try { return JSON.parse(sessionStorage.getItem(DROPPED_KEY) || "[]"); } catch (e) { return []; }
+  }
+
+  function buildCommand() {
+    var dropped = droppedCommands();
+    var list = COMMANDS.filter(function (cmd) { return dropped.indexOf(cmd) === -1; });
+    return list.map(function (cmd, i) { return i === 0 ? cmd : cmd.replace(/^AT/i, ""); }).join(";");
+  }
+
+  /** Runs once, only when the batch response shows an error or looks cut short. */
+  function probeIfNeeded(text) {
+    if (probed || !window.AT) return Promise.resolve();
+    var looksBroken = /(^|\n)\s*(ERROR|\+CM[ES] ERROR)/i.test(text) || !/\+QENG:/.test(text);
+    if (!looksBroken) { probed = true; return Promise.resolve(); }
+    probed = true;
+    var dropped = [];
+    return COMMANDS.reduce(function (chain, cmd) {
+      return chain.then(function () {
+        return AT.soft(cmd, { timeout: 8000 }).then(function (r) { if (!r.ok && !r.timedOut) dropped.push(cmd); });
+      });
+    }, Promise.resolve()).then(function () {
+      try { sessionStorage.setItem(DROPPED_KEY, JSON.stringify(dropped)); } catch (e) { /* ignore */ }
+    });
+  }
+
+  // IP address fallback when +CGCONTRDP is not available: +CGPADDR: 1,"ipv4"[,"ipv6"]
+  function applyPdpAddress(text) {
+    if (state.ipv4 !== "-" && state.ipv6 !== "-") return;
+    var line = text.split("\n").map(function (l) { return l.trim(); }).filter(function (l) { return l.indexOf("+CGPADDR:") === 0; })[0];
+    if (!line) return;
+    line.slice(line.indexOf(":") + 1).split(",").slice(1).forEach(function (part) {
+      var address = part.replace(/"/g, "").trim();
+      if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(address) && state.ipv4 === "-") state.ipv4 = address;
+      else if (address.indexOf(":") !== -1 && state.ipv6 === "-") state.ipv6 = address;
+    });
+  }
   var WINDOW_MS = 5 * 60 * 1000;
   var MAX_POINTS = 150;
   var GRADE_COLOR = { "Excellent": "#15803D", "Good": "#22C55E", "Fair": "#EAB308", "Poor": "#EF4444", "No signal": "#A3ABBE" };
@@ -28,7 +73,8 @@
     var raw = state.network_provider && state.network_provider !== "-" ? String(state.network_provider).trim() : "";
     if (raw && !/[\u4e00-\u9fff]/.test(raw)) return raw;
     // The modem may return MCCMNC with quotes or spaces; normalize before lookup.
-    var mapped = OPERATORS[String(state.mccmnc || "").replace(/["\s]/g, "")];
+    var key = String(state.mccmnc || "").replace(/["\s]/g, "");
+    var mapped = OPERATORS[key] || (window.OPERATOR_NAMES || {})[key];
     if (mapped) return mapped;
     if (raw) return "MCCMNC " + String(state.mccmnc || "unknown").replace(/["\s]/g, "");
     return "—";
@@ -585,11 +631,14 @@
   function poll() {
     if (state.networkFetchPending || paused || document.hidden) return;
     state.networkFetchPending = true;
-    var url = "/cgi-bin/get_atcommand?" + new URLSearchParams({ atcmd: AT_CMD }).toString();
+    var url = "/cgi-bin/get_atcommand?" + new URLSearchParams({ atcmd: buildCommand() }).toString();
     /* Only the AT request has the ten-second timeout. Ping and uptime failures
        do not invalidate signal readings that were already received. */
     fetchText(url, 10000).then(function (text) {
+      return probeIfNeeded(text).then(function () { return text; });
+    }).then(function (text) {
       state.parseNetworkInfo(text.split("\n"));
+      applyPdpAddress(text);
       var ping = state.sim !== "Inactive" ? fetchText("/cgi-bin/get_ping", 8000) : Promise.resolve("");
       return ping.then(function (body) {
         if (body) state.internetConnection = body.trim() === "OK" ? "Connected" : "Disconnected";

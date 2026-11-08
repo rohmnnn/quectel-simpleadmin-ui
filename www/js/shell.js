@@ -12,7 +12,9 @@
     { group: "Network", id: "sms", href: "/sms.html", label: "SMS", icon: "sms" },
     { group: "Device", id: "settings", href: "/settings.html", label: "Settings", icon: "gear" },
     { group: "Device", id: "device", href: "/deviceinfo.html", label: "Device info", icon: "chip" },
-    { group: "Device", id: "watchcat", href: "/watchcat.html", label: "Watchcat", icon: "pulse" }
+    { group: "Device", id: "watchcat", href: "/watchcat.html", label: "Watchcat", icon: "pulse" },
+    { group: "Device", id: "diagnostics", href: "/diagnostics.html", label: "Diagnostics", icon: "scan" },
+    { group: "Device", id: "console", href: "/console", label: "Console", icon: "terminal" }
   ];
   var TABS = [
     { id: "home", href: "/", label: "Home", icon: "home" },
@@ -31,6 +33,7 @@
       gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
       chip: '<rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/>',
       pulse: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+      terminal: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="m7.5 10 3 2-3 2M13 14h3.5"/>',
       more: '<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>',
       sun: '<circle cx="12" cy="12" r="3.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>',
       moon: '<path d="M16 3.5A8 8 0 1 0 20.5 14 6.5 6.5 0 0 1 16 3.5z"/>'
