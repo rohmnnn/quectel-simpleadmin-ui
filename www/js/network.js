@@ -239,6 +239,7 @@
 
   function applyCellLock(kind, action) {
     var command;
+    var nrLock = null;
     if (action === "unlock") {
       command = kind === "lte" ? 'AT+QNWLOCK="common/4g",0' : 'AT+QNWLOCK="common/5g",0';   // old code had "common/5g,0" (quote in the wrong place)
     } else if (kind === "lte") {
@@ -255,13 +256,16 @@
     } else {
       var values = ["nr-earfcn", "nr-pci", "nr-scs", "nr-band"].map(function (id) { return $(id).value.trim(); });
       if (!values.every(function (value) { return /^\d+$/.test(value); })) throw new Error("Enter numeric EARFCN, PCI, SCS, and band values.");
-      command = 'AT+QNWLOCK="common/5g",' + values.join(",");
+      nrLock = { earfcn: values[0], pci: values[1], scs: values[2], band: values[3] };
+      // Quectel order is PCI first; js/at.js retries the other order if the modem rejects it
+      command = 'AT+QNWLOCK="common/5g",' + nrLock.pci + "," + nrLock.earfcn + "," + nrLock.scs + "," + nrLock.band;
     }
     if (!window.confirm("Apply this modem command?\n\n" + command)) return;
     guard("cell-result", function () {
       setResult("cell-result", "Applying…");
-      return AT.at(command, { timeout: 12000 }).then(function (text) {
-        setResult("cell-result", "Cell-lock command completed. " + text.replace(/\s+/g, " ").trim(), "success");
+      var run = nrLock ? AT.cellLock.lockNr(nrLock.pci, nrLock.earfcn, nrLock.scs, nrLock.band) : AT.at(command, { timeout: 12000 });
+      return run.then(function (text) {
+        setResult("cell-result", "Cell-lock command completed. " + (typeof text === "string" ? text.replace(/\s+/g, " ").trim() : ""), "success");
       }, function (error) {
         if (error.modemError) throw new Error(error.message + " (AT+QNWLOCK is not listed in the RG50xQ manual, this modem may not support cell locking.)");
         throw error;

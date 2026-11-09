@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cell scan · SimpleAdmin</title>
-  <link rel="stylesheet" href="css/app.css?v=20261105-2344">
+  <link rel="stylesheet" href="css/app.css?v=20261109-1">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -13,6 +13,7 @@
       document.documentElement.style.colorScheme = theme;
     })();
   </script>
+  <script src="js/auth.js?v=20261109-1"></script>
 </head>
 <body data-page="scan">
   <div class="app">
@@ -28,27 +29,41 @@
           <div class="form-actions"><button class="primary" id="scan-run" type="button">Start network scan</button></div>
           <p class="result" id="scan-result" role="status" aria-live="polite"></p>
           <div class="table-wrap">
-            <table class="data-table"><thead><tr><th>RAT</th><th>Operator (MCCMNC)</th><th>Band</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th></tr></thead><tbody id="scan-rows"><tr><td colspan="6">No scan has been run.</td></tr></tbody></table>
+            <table class="data-table"><thead><tr><th>RAT</th><th>Operator (MCCMNC)</th><th>Band</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th><th>Action</th></tr></thead><tbody id="scan-rows"><tr><td colspan="7">No scan has been run.</td></tr></tbody></table>
           </div>
           <details><summary>Raw modem response</summary><pre class="at-output raw-response" id="scan-output"></pre></details>
         </section>
         <section class="card">
           <h2>Serving and neighboring cells</h2>
-          <p class="section-note">Query the modem for current LTE and NR5G neighboring-cell measurements.</p>
-          <div class="form-actions"><button class="primary" id="neighbor-read" type="button">Read cell measurements</button></div>
+          <p class="section-note">Read the cell you are connected to and the cells around it, then lock the modem to any of them with one click.</p>
+          <div class="form-actions"><button class="primary" id="neighbor-read" type="button">Read serving and neighboring cells</button></div>
           <p class="result" id="neighbor-result" role="status" aria-live="polite"></p>
+          <h3>Serving cell</h3>
           <div class="table-wrap">
-            <table class="data-table"><thead><tr><th>RAT</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th></tr></thead><tbody id="neighbor-rows"><tr><td colspan="4">No cell measurements have been read.</td></tr></tbody></table>
+            <table class="data-table"><thead><tr><th>RAT</th><th>Band</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th><th>Action</th></tr></thead><tbody id="serving-rows"><tr><td colspan="6">The serving cell has not been read.</td></tr></tbody></table>
+          </div>
+          <h3>Neighboring cells</h3>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>RAT</th><th>EARFCN / ARFCN</th><th>PCI</th><th>RSRP</th><th>Action</th></tr></thead><tbody id="neighbor-rows"><tr><td colspan="5">No cell measurements have been read.</td></tr></tbody></table>
           </div>
           <details><summary>Raw modem response</summary><pre class="at-output raw-response" id="neighbor-output"></pre></details>
+        </section>
+        <section class="card" id="cell-lock">
+          <h2>Cell lock</h2>
+          <p class="section-note">A locked modem uses only that cell. If the cell is weak or far away you can lose the connection, so keep this page open to unlock. Locks are not saved by every firmware: check the status below.</p>
+          <label class="check-field"><input type="checkbox" id="lock-reattach" checked>Re-register after locking so it takes effect now (brief connection drop)</label>
+          <label class="field"><span>5G subcarrier spacing (kHz)</span><select id="lock-scs"><option value="auto">Automatic for the band</option><option value="15">15</option><option value="30">30</option><option value="60">60</option><option value="120">120</option></select></label>
+          <div class="form-actions"><button class="secondary" id="lock-status-read" type="button">Read lock status</button><button class="danger-button" id="unlock-4g" type="button">Unlock 4G</button><button class="danger-button" id="unlock-5g" type="button">Unlock 5G</button></div>
+          <p class="result" id="lock-result" role="status" aria-live="polite"></p>
+          <pre class="at-output raw-response" id="lock-status">Press "Read lock status" to see the current lock.</pre>
         </section>
       </main>
     </div></div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261107-1"></script>
-  <script src="js/at.js?v=20261107-1"></script>
-  <script src="js/operators.js?v=20261107-1"></script>
-  <script src="js/scanner.js?v=20261107-1"></script>
+  <script src="js/shell.js?v=20261109-1"></script>
+  <script src="js/at.js?v=20261109-1"></script>
+  <script src="js/operators.js?v=20261109-1"></script>
+  <script src="js/scanner.js?v=20261109-1"></script>
 </body>
 </html>

@@ -81,14 +81,8 @@
     }).then(function (v) { set("lan", track("LAN IP", v));
       return AT.soft("AT+CGPADDR=1");
     }).then(function (r) {
-      var v4 = "", v6 = "";
-      if (r.ok) {
-        AT.fields(AT.line(r.text, "+CGPADDR:")).slice(1).forEach(function (a) {
-          if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(a)) v4 = v4 || a;
-          else if (a.indexOf(":") !== -1) v6 = v6 || a;
-        });
-      }
-      if (v4 || v6) { set("ipv4", v4); set("ipv6", v6); return null; }
+      var found = r.ok ? AT.parseAddresses(r.text) : { v4: "", v6: "" };
+      if (found.v4 || found.v6) { set("ipv4", found.v4); set("ipv6", found.v6); return null; }
       return AT.soft('AT+QMAP="WWAN"');   // older firmware
     }).then(function (r) {
       if (r) {

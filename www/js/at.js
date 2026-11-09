@@ -39,6 +39,13 @@
     var init = { cache: "no-store" };
     if (controller) init.signal = controller.signal;
     return fetch(url, init).then(function (response) {
+      if (response.status === 401) {
+        // Session login (login.html): go back to the login page. With plain web-server auth the browser handles it.
+        if (window.SA_AUTH && window.SA_AUTH.mode === "session" && window.SA_AUTH.goLogin) window.SA_AUTH.goLogin();
+        var denied = new Error("You are not logged in or the session expired (HTTP 401).");
+        denied.unauthorized = true;
+        throw denied;
+      }
       if (!response.ok && !options.allowHttpError) throw new Error("Request failed (HTTP " + response.status + ").");
       return response.text();
     }).catch(function (error) {
@@ -180,6 +187,107 @@
     return values;
   }
 
+
+  /* ---------- IP addresses (+CGPADDR / +CGCONTRDP) ---------- */
+
+  // 3GPP allows an IPv6 address to be printed as 16 dotted decimal bytes ("32.1.13.184.0.0..."),
+  // and +CGCONTRDP appends the subnet mask (8 bytes for IPv4, 32 for IPv6). Convert to normal text.
+  function bytesToIpv6(bytes) {
+    var groups = [];
+    for (var i = 0; i < 16; i += 2) groups.push(((bytes[i] << 8) | bytes[i + 1]).toString(16));
+    var best = -1, bestLen = 0, cur = -1, curLen = 0;
+    for (var g = 0; g < 8; g++) {
+      if (groups[g] === "0") {
+        if (cur < 0) { cur = g; curLen = 0; }
+        curLen++;
+        if (curLen > bestLen) { best = cur; bestLen = curLen; }
+      } else { cur = -1; curLen = 0; }
+    }
+    if (bestLen < 2) return groups.join(":");
+    return groups.slice(0, best).join(":") + "::" + groups.slice(best + bestLen).join(":");
+  }
+
+  // -> {family: 4|6, value} or null
+  function classifyAddress(token) {
+    var t = String(token || "").replace(/"/g, "").trim().split("/")[0];
+    if (!t) return null;
+    if (t.indexOf(":") !== -1) return /^[0-9a-f:.]+$/i.test(t) ? { family: 6, value: t.toLowerCase() } : null;
+    if (!/^\d{1,3}(\.\d{1,3})+$/.test(t)) return null;
+    var nums = t.split(".").map(Number);
+    if (nums.some(function (n) { return n > 255; })) return null;
+    if (nums.length === 4 || nums.length === 8) {
+      var v4 = nums.slice(0, 4).join(".");
+      return v4 === "0.0.0.0" ? null : { family: 4, value: v4 };
+    }
+    if (nums.length === 16 || nums.length === 32) {
+      var allZero = nums.slice(0, 16).every(function (n) { return n === 0; });
+      return allZero ? null : { family: 6, value: bytesToIpv6(nums.slice(0, 16)) };
+    }
+    return null;
+  }
+
+  // Reads every "+CGPADDR:" / "+CGCONTRDP:" line of a response. Prefers a global IPv6 over fe80::.
+  function parseAddresses(text) {
+    var found = { v4: "", v6: "", all: [] };
+    function add(token) {
+      var a = classifyAddress(token);
+      if (!a) return;
+      found.all.push(a.value);
+      if (a.family === 4 && !found.v4) found.v4 = a.value;
+      if (a.family === 6 && (!found.v6 || (/^fe80/.test(found.v6) && !/^fe80/.test(a.value)))) found.v6 = a.value;
+    }
+    lines(text, "+CGPADDR:").forEach(function (l) { fields(l).slice(1).forEach(add); });
+    lines(text, "+CGCONTRDP:").forEach(function (l) { add(fields(l)[3]); });
+    return found;
+  }
+
+  /* ---------- cell lock (AT+QNWLOCK) ---------- */
+
+  var NR_ORDER_KEY = "nr-lock-order";
+
+  // Typical NR subcarrier spacing by band: FDD low bands 15 kHz, mid-band TDD 30 kHz, mmWave 120 kHz.
+  function defaultScs(band) {
+    var b = Number(String(band).replace(/\D/g, ""));
+    if ([38, 40, 41, 46, 48, 77, 78, 79, 90, 96, 102, 104].indexOf(b) !== -1) return 30;
+    if (b >= 257 && b <= 262) return 120;
+    return 15;
+  }
+
+  function lockLte(earfcn, pci) {
+    return at('AT+QNWLOCK="common/4g",1,' + Number(earfcn) + "," + Number(pci), { timeout: 12000 });
+  }
+
+  // Quectel documents common/5g as <PCI>,<ARFCN>,<SCS>,<BAND>; the original SimpleAdmin sent ARFCN first.
+  // PCI (0-1007) and ARFCN (large) cannot be swapped by accident: a wrong order is rejected, so the other
+  // order is tried once and the one that works is remembered.
+  function lockNr(pci, arfcn, scs, band) {
+    var order = "pci-first";
+    try { order = localStorage.getItem(NR_ORDER_KEY) === "arfcn-first" ? "arfcn-first" : "pci-first"; } catch (e) { /* ignore */ }
+    function build(o) {
+      var pair = o === "arfcn-first" ? [Number(arfcn), Number(pci)] : [Number(pci), Number(arfcn)];
+      return 'AT+QNWLOCK="common/5g",' + pair[0] + "," + pair[1] + "," + Number(scs) + "," + Number(String(band).replace(/\D/g, ""));
+    }
+    var other = order === "pci-first" ? "arfcn-first" : "pci-first";
+    return at(build(order), { timeout: 12000 }).then(function () {
+      return { command: build(order) };
+    }, function (error) {
+      if (!error.modemError) throw error;
+      return at(build(other), { timeout: 12000 }).then(function () {
+        try { localStorage.setItem(NR_ORDER_KEY, other); } catch (e) { /* ignore */ }
+        return { command: build(other) };
+      }, function () { throw error; });
+    });
+  }
+
+  function unlockCell(kind) {
+    return at('AT+QNWLOCK="common/' + (kind === "4g" ? "4g" : "5g") + '",0', { timeout: 12000 });
+  }
+
+  // Deregister and register again so a new lock is used right away.
+  function reattach() {
+    return at("AT+COPS=2", { timeout: 15000 }).then(function () { return at("AT+COPS=0", { timeout: 90000 }); });
+  }
+
   window.AT = {
     enqueue: enqueue,
     fetchText: fetchText,
@@ -194,6 +302,8 @@
     anyErrorLine: anyErrorLine,
     lines: lines,
     line: line,
-    fields: fields
+    fields: fields,
+    parseAddresses: parseAddresses,
+    cellLock: { defaultScs: defaultScs, lockLte: lockLte, lockNr: lockNr, unlock: unlockCell, reattach: reattach }
   };
 })();

@@ -9,7 +9,7 @@
   // written for another module; the RG50xQ manual does not list +QRSRP/+QRSRQ/+QSINR/+CGCONTRDP),
   // the first failing poll tests every command on its own and drops the rejected ones for the session.
   // Order matters: a chained AT line stops at the first rejected command, so the likely-rejected ones go last.
-  var COMMANDS = ["AT+QSIMSTAT?", "AT+CSQ", "AT+QTEMP", "AT+QSPN", 'AT+QENG="servingcell"', "AT+QNWINFO", "AT+CGPADDR=1",
+  var COMMANDS = ["AT+QSIMSTAT?", "AT+CSQ", "AT+QTEMP", "AT+QSPN", 'AT+QENG="servingcell"', "AT+QNWINFO", "AT+CGPADDR=1", "AT+CGDCONT?",
     "AT+QUIMSLOT?", "AT+CGCONTRDP=1", "AT+QRSRP", "AT+QRSRQ", "AT+QSINR"];
   var DROPPED_KEY = "home-dropped-commands";
   var probed = false;
@@ -40,17 +40,19 @@
     });
   }
 
-  // IP address fallback when +CGCONTRDP is not available: +CGPADDR: 1,"ipv4"[,"ipv6"]
+  // IP and APN fallback when +CGCONTRDP is missing or in a format signal.js does not read.
+  // +CGPADDR may print IPv6 as 16 dotted bytes: AT.parseAddresses (js/at.js) converts both families.
   function applyPdpAddress(text) {
-    if (state.ipv4 !== "-" && state.ipv6 !== "-") return;
-    var line = text.split("\n").map(function (l) { return l.trim(); }).filter(function (l) { return l.indexOf("+CGPADDR:") === 0; })[0];
-    if (!line) return;
-    line.slice(line.indexOf(":") + 1).split(",").slice(1).forEach(function (part) {
-      var address = part.replace(/"/g, "").trim();
-      if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(address) && state.ipv4 === "-") state.ipv4 = address;
-      else if (address.indexOf(":") !== -1 && state.ipv6 === "-") state.ipv6 = address;
-    });
+    if (!window.AT) return;
+    var found = AT.parseAddresses(text);
+    if (state.ipv4 === "-" && found.v4) state.ipv4 = found.v4;
+    if (state.ipv6 === "-" && found.v6) state.ipv6 = found.v6;
+    if (!state.apn || state.apn === "-") {
+      var line = text.split("\n").map(function (l) { return l.trim(); }).filter(function (l) { return /^\+CGDCONT:\s*1,/.test(l); })[0];
+      if (line) { var f = AT.fields(line); if (f[2]) state.apn = f[2]; }
+    }
   }
+
   var WINDOW_MS = 5 * 60 * 1000;
   var MAX_POINTS = 150;
   var GRADE_COLOR = { "Excellent": "#15803D", "Good": "#22C55E", "Fair": "#EAB308", "Poor": "#EF4444", "No signal": "#A3ABBE" };
@@ -623,6 +625,7 @@
     var controller = new AbortController();
     var timerId = setTimeout(function () { controller.abort(); }, timeoutMs);
     return fetch(url, { signal: controller.signal, cache: "no-store" }).then(function (response) {
+      if (response.status === 401 && window.SA_AUTH && SA_AUTH.mode === "session") SA_AUTH.goLogin();
       if (!response.ok) throw new Error(String(response.status));
       return response.text();
     }).finally(function () { clearTimeout(timerId); });
