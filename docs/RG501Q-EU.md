@@ -128,3 +128,27 @@ Rules:
   to the original `uid,part,total` form if the modem rejects that.
 - The upstream `network.html` has two typos the fork did not copy: `"common/5g,0"` (quote in the wrong place)
   and the `AT++...` prefix that the original removed with `.replace("++", "+")`.
+
+
+## IPv4 and IPv6 on the Home page
+
+`+CGCONTRDP` is not in the RG50xQ manual and the original parser only accepts IPv6 written with colons.
+The UI therefore also reads `+CGPADDR=1` and `+CGDCONT?`. 3GPP lets a modem print an IPv6 address as 16 dotted
+decimal bytes (`32.1.13.184.0.0...`) and `+CGCONTRDP` adds the subnet mask (8 or 32 bytes): `AT.parseAddresses`
+(`js/at.js`) converts all these forms. If IPv6 is still empty, the APN IP type is probably IPV4 only.
+
+## Cell lock commands
+
+| Action | Command |
+|---|---|
+| Lock LTE | `AT+QNWLOCK="common/4g",1,<EARFCN>,<PCI>` |
+| Lock NR5G | `AT+QNWLOCK="common/5g",<PCI>,<ARFCN>,<SCS>,<BAND>` (the original SimpleAdmin sends ARFCN first; the other order is tried when the modem rejects the first) |
+| Unlock | `AT+QNWLOCK="common/4g",0` / `AT+QNWLOCK="common/5g",0` |
+| Apply now | `AT+COPS=2` then `AT+COPS=0` |
+
+`AT+QNWLOCK` is not in the RG50xQ manual (V1.1.1), so support depends on the firmware.
+
+## Login
+
+See the README. Server side: `device/auth/auth.sh` (library), `www/cgi-bin/auth_*` (login, status, logout,
+password change) and `install-auth.sh`, which adds a session check to every other CGI script.

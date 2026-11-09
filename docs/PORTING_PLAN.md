@@ -65,6 +65,8 @@ Known differences from upstream:
 | Scanner page has a "Live Signal" card and signal-strength icons per row | Not ported (status bar and Home show signal) |
 | Full MCC+MNC operator table in the scanner | Ported as `js/operators.js` |
 | "Console" link (`/console`, ttyd) in the navigation | Added |
+| Cell lock only by typing EARFCN and PCI on the Network page | One-click Lock on serving/neighbor rows (Cell scan page) and Unlock buttons |
+| Browser Basic-auth dialog (lighttpd) | Optional login page with sessions (`device/auth`) |
 | Device info shows the SimpleAdmin version | Not ported |
 | One chained AT line per page action | One command per request (a rejected command no longer hides the others) |
 | `user_atcommand` (broken upstream) | Not used |
