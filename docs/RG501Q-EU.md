@@ -130,6 +130,11 @@ Rules:
   and the `AT++...` prefix that the original removed with `.replace("++", "+")`.
 
 
+## Confirmed with Diagnostics (firmware RG501QEUAAR13A01M4G)
+
+Accepted although not in the manual: `+QRSRP`, `+QRSRQ`, `+QSINR`, `+QNWLOCK`, `+QSCAN`, `+QMAP="WWAN"`, `+QMAP="LANIP"`,
+`+QMAP="MPDN_RULE"`, `+QCFG="usbnet"`, `+QGMR`, `+QCCID`, `+ICCID`. Rejected: `+QMAP="DHCPV4DNS"`.
+
 ## IPv4 and IPv6 on the Home page
 
 `+CGCONTRDP` is not in the RG50xQ manual and the original parser only accepts IPv6 written with colons.
@@ -144,11 +149,8 @@ decimal bytes (`32.1.13.184.0.0...`) and `+CGCONTRDP` adds the subnet mask (8 or
 | Lock LTE | `AT+QNWLOCK="common/4g",1,<EARFCN>,<PCI>` |
 | Lock NR5G | `AT+QNWLOCK="common/5g",<PCI>,<ARFCN>,<SCS>,<BAND>` (the original SimpleAdmin sends ARFCN first; the other order is tried when the modem rejects the first) |
 | Unlock | `AT+QNWLOCK="common/4g",0` / `AT+QNWLOCK="common/5g",0` |
-| Apply now | `AT+COPS=2` then `AT+COPS=0` |
+| Apply now | `AT+CFUN=4` then `AT+CFUN=1` (airplane mode off/on; answers at once, unlike `AT+COPS=0`) |
+| Check the result | `AT+CEREG?` / `AT+C5GREG?`, status 1 or 5 = registered (polled for 30 s, the lock is removed if it never registers) |
 
-`AT+QNWLOCK` is not in the RG50xQ manual (V1.1.1), so support depends on the firmware.
+`AT+QNWLOCK` is not in the RG50xQ manual (V1.1.1) but firmware RG501QEUAAR13A01M4G accepts it.
 
-## Login
-
-See the README. Server side: `device/auth/auth.sh` (library), `www/cgi-bin/auth_*` (login, status, logout,
-password change) and `install-auth.sh`, which adds a session check to every other CGI script.

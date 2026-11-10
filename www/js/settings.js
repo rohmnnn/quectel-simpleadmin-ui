@@ -11,7 +11,7 @@
   function result(id, message, kind) {
     var el = $(id);
     el.textContent = message;
-    el.className = "result" + (id === "ttl-result" || id === "terminal-result" || id === "security-result" ? " field-wide" : "") + (kind ? " is-" + kind : "");
+    el.className = "result" + (id === "ttl-result" || id === "terminal-result" ? " field-wide" : "") + (kind ? " is-" + kind : "");
   }
 
   function shortText(text) {
@@ -277,45 +277,6 @@
     guard(function () { return rebootFlow("terminal-result"); });
   });
 
-
-  /* ---------- security (login password) ---------- */
-
-  if (window.SA_AUTH) {
-    SA_AUTH.ready.then(function () {
-      if (SA_AUTH.mode !== "session") return;
-      $("security-card").style.display = "";
-    });
-  }
-
-  $("logout-btn").addEventListener("click", function () { SA_AUTH.logout(); });
-  $("password-form").addEventListener("submit", function (event) {
-    event.preventDefault();
-    var current = $("pw-current").value;
-    var next = $("pw-new").value;
-    if (!current || !next) { result("security-result", "Fill in both password fields.", "error"); return; }
-    if (next.length < 8) { result("security-result", "The new password needs at least 8 characters.", "error"); return; }
-    if (next !== $("pw-repeat").value) { result("security-result", "The two new passwords are different.", "error"); return; }
-    $("pw-save").disabled = true;
-    result("security-result", "Saving…");
-    var controller = typeof AbortController === "function" ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
-    fetch("/cgi-bin/auth_password", { method: "POST", body: new URLSearchParams({ current: current, new: next }), credentials: "same-origin", cache: "no-store", signal: controller ? controller.signal : undefined })
-      .then(function (response) {
-        if (response.status === 401 && window.SA_AUTH && SA_AUTH.mode === "session") {
-          return response.json().catch(function () { return {}; }).then(function (data) {
-            if (data && data.error) throw new Error(data.error);
-            SA_AUTH.goLogin();
-          });
-        }
-        return response.json().catch(function () { return {}; }).then(function (data) {
-          if (!response.ok || !data.ok) throw new Error(data && data.error ? data.error : "The password was not changed (HTTP " + response.status + ").");
-          $("pw-current").value = $("pw-new").value = $("pw-repeat").value = "";
-          result("security-result", "Password changed. Other sessions were signed out.", "success");
-        });
-      }).catch(function (error) {
-        result("security-result", error && error.name === "AbortError" ? "The device did not answer in time." : error.message, "error");
-      }).finally(function () { if (timer) clearTimeout(timer); $("pw-save").disabled = false; });
-  });
 
   readSettings();
   readTtl();

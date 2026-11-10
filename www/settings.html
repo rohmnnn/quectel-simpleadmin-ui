@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Settings · SimpleAdmin</title>
-  <link rel="stylesheet" href="css/app.css?v=20261109-1">
+  <link rel="stylesheet" href="css/app.css?v=20261110-1">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -13,7 +13,6 @@
       document.documentElement.style.colorScheme = theme;
     })();
   </script>
-  <script src="js/auth.js?v=20261109-1"></script>
 </head>
 <body data-page="settings">
   <div class="app">
@@ -64,23 +63,12 @@
             <label class="field field-wide"><span>AT response</span><textarea id="terminal-output" rows="8" readonly></textarea></label>
           </div>
         </section>
-        <section class="card" id="security-card" style="display:none">
-          <h2>Security</h2>
-          <p class="section-note">Change the web login password. All other sessions are signed out.</p>
-          <form id="password-form" class="form-grid" novalidate>
-            <label class="field"><span>Current password</span><input id="pw-current" type="password" autocomplete="current-password"></label>
-            <label class="field"><span>New password (at least 8 characters)</span><input id="pw-new" type="password" autocomplete="new-password"></label>
-            <label class="field"><span>Repeat the new password</span><input id="pw-repeat" type="password" autocomplete="new-password"></label>
-            <div class="form-actions"><button class="primary" type="submit" id="pw-save">Change password</button><button class="secondary" type="button" id="logout-btn">Log out</button></div>
-            <p class="result field-wide" id="security-result" role="status" aria-live="polite"></p>
-          </form>
-        </section>
       </main>
     </div></div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261109-1"></script>
-  <script src="js/at.js?v=20261109-1"></script>
-  <script src="js/settings.js?v=20261109-1"></script>
+  <script src="js/shell.js?v=20261110-1"></script>
+  <script src="js/at.js?v=20261110-1"></script>
+  <script src="js/settings.js?v=20261110-1"></script>
 </body>
 </html>

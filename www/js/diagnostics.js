@@ -25,10 +25,12 @@
 
   function $(id) { return document.getElementById(id); }
 
+  // IPv6-looking text is hidden, but band lists such as "1:3:7:20:28" are not: a real IPv6 address
+  // contains "::", a hex letter or a four-digit group, a band list never does.
   function redact(text) {
     return String(text)
       .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, "x.x.x.x")
-      .replace(/[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){3,7}/gi, "<ipv6>")
+      .replace(/[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){3,7}/gi, function (m) { return (/::/.test(m) || /[a-f]/i.test(m) || /\b[0-9a-f]{4}\b/i.test(m)) ? "<ipv6>" : m; })
       .replace(/\+?\d{10,}/g, "<digits>");
   }
 

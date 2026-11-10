@@ -79,22 +79,18 @@
     }).then(function (v) { currentImei = v; set("imei", track("IMEI", v));
       return firstOk(['AT+QMAP="LANIP"'], function (text) { return AT.fields(AT.line(text, "+QMAP:"))[3] || ""; });
     }).then(function (v) { set("lan", track("LAN IP", v));
-      return AT.soft("AT+CGPADDR=1");
+      return AT.soft('AT+QMAP="WWAN"');
     }).then(function (r) {
       var found = r.ok ? AT.parseAddresses(r.text) : { v4: "", v6: "" };
-      if (found.v4 || found.v6) { set("ipv4", found.v4); set("ipv6", found.v6); return null; }
-      return AT.soft('AT+QMAP="WWAN"');   // older firmware
-    }).then(function (r) {
-      if (r) {
-        var v4 = "", v6 = "";
-        if (r.ok) AT.lines(r.text, "+QMAP:").forEach(function (line) {
-          var f = AT.fields(line);
-          if (/IPV4/i.test(f[3] || "")) v4 = v4 || f[4] || "";
-          if (/IPV6/i.test(f[3] || "")) v6 = v6 || f[4] || "";
-        });
-        set("ipv4", v4); set("ipv6", v6);
-        if (!v4 && !v6) missing.push("WWAN IP");
-      }
+      if (found.v4 && found.v6) return found;
+      return AT.soft("AT+CGPADDR=1").then(function (r2) {
+        var more = r2.ok ? AT.parseAddresses(r2.text) : { v4: "", v6: "" };
+        return { v4: found.v4 || more.v4, v6: found.v6 || more.v6 };
+      });
+    }).then(function (found) {
+      set("ipv4", found.v4);
+      set("ipv6", found.v6);
+      if (!found.v4 && !found.v6) missing.push("WWAN IP");
       return firstOk(["AT+CNUM"], function (text) { return AT.fields(AT.line(text, "+CNUM:"))[1] || ""; });
     }).then(function (v) {
       set("phone", v);   // a SIM often has no stored number: not reported as missing

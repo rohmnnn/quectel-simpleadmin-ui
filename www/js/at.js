@@ -40,9 +40,7 @@
     if (controller) init.signal = controller.signal;
     return fetch(url, init).then(function (response) {
       if (response.status === 401) {
-        // Session login (login.html): go back to the login page. With plain web-server auth the browser handles it.
-        if (window.SA_AUTH && window.SA_AUTH.mode === "session" && window.SA_AUTH.goLogin) window.SA_AUTH.goLogin();
-        var denied = new Error("You are not logged in or the session expired (HTTP 401).");
+        var denied = new Error("Not authorized (HTTP 401). Reload the page and sign in again.");
         denied.unauthorized = true;
         throw denied;
       }
@@ -226,18 +224,28 @@
     return null;
   }
 
-  // Reads every "+CGPADDR:" / "+CGCONTRDP:" line of a response. Prefers a global IPv6 over fe80::.
+  // Reads the device addresses of a response. Sources, best first:
+  //   +QMAP: "WWAN",1,1,"IPV4","<ip>"   (explicit family, one line per family)
+  //   +CGPADDR: 1,"<ipv4>,<ipv6 as 16 dotted bytes>"   (both addresses can sit inside ONE quoted string)
+  //   +CGCONTRDP: <cid>,<bearer>,<apn>,<ipv4>,<ipv6>,...
+  // A global IPv6 is preferred over fe80::.
   function parseAddresses(text) {
     var found = { v4: "", v6: "", all: [] };
     function add(token) {
-      var a = classifyAddress(token);
-      if (!a) return;
-      found.all.push(a.value);
-      if (a.family === 4 && !found.v4) found.v4 = a.value;
-      if (a.family === 6 && (!found.v6 || (/^fe80/.test(found.v6) && !/^fe80/.test(a.value)))) found.v6 = a.value;
+      String(token || "").split(",").forEach(function (part) {
+        var a = classifyAddress(part);
+        if (!a) return;
+        found.all.push(a.value);
+        if (a.family === 4 && !found.v4) found.v4 = a.value;
+        if (a.family === 6 && (!found.v6 || (/^fe80/.test(found.v6) && !/^fe80/.test(a.value)))) found.v6 = a.value;
+      });
     }
+    lines(text, "+QMAP:").forEach(function (l) {
+      var f = fields(l);
+      if (/^WWAN$/i.test(f[0]) && /^IPV[46]$/i.test(f[3] || "")) add(f[4]);
+    });
     lines(text, "+CGPADDR:").forEach(function (l) { fields(l).slice(1).forEach(add); });
-    lines(text, "+CGCONTRDP:").forEach(function (l) { add(fields(l)[3]); });
+    if (!found.v4 || !found.v6) lines(text, "+CGCONTRDP:").forEach(function (l) { var f = fields(l); add(f[3]); add(f[4]); });
     return found;
   }
 
@@ -283,9 +291,47 @@
     return at('AT+QNWLOCK="common/' + (kind === "4g" ? "4g" : "5g") + '",0', { timeout: 12000 });
   }
 
-  // Deregister and register again so a new lock is used right away.
+  // Restart the radio (airplane mode on, then off) so a new lock is used right away. Unlike AT+COPS=0 this
+  // answers at once and does not wait for a registration that may never come.
   function reattach() {
-    return at("AT+COPS=2", { timeout: 15000 }).then(function () { return at("AT+COPS=0", { timeout: 90000 }); });
+    return at("AT+CFUN=4", { timeout: 20000 }).then(function () { return sleep(1500); }).then(function () {
+      return at("AT+CFUN=1", { timeout: 20000 });
+    });
+  }
+
+  function regStat(text, prefix) {
+    var l = line(text, prefix);
+    if (!l) return null;
+    var f = fields(l);
+    var n = Number(f.length > 1 ? f[1] : f[0]);
+    return isFinite(n) ? n : null;
+  }
+
+  // true = registered (home or roaming) on LTE or 5G, false = not registered, null = the modem could not tell
+  function isRegistered() {
+    return soft("AT+CEREG?", { timeout: 6000 }).then(function (a) {
+      return soft("AT+C5GREG?", { timeout: 6000 }).then(function (b) {
+        var s4 = a.ok ? regStat(a.text, "+CEREG:") : null;
+        var s5 = b.ok ? regStat(b.text, "+C5GREG:") : null;
+        if (s4 === null && s5 === null) return null;
+        return [1, 5].indexOf(s4) !== -1 || [1, 5].indexOf(s5) !== -1;
+      });
+    });
+  }
+
+  // Polls until registered. Resolves true, false (never registered within maxMs) or null (cannot be checked).
+  function waitRegistered(maxMs, onStatus) {
+    var started = Date.now();
+    function attempt() {
+      return isRegistered().then(function (state) {
+        if (state === true || state === null) return state;
+        var left = maxMs - (Date.now() - started);
+        if (left <= 0) return false;
+        if (onStatus) onStatus(Math.ceil(left / 1000));
+        return sleep(3000).then(attempt);
+      });
+    }
+    return attempt();
   }
 
   window.AT = {
@@ -304,6 +350,6 @@
     line: line,
     fields: fields,
     parseAddresses: parseAddresses,
-    cellLock: { defaultScs: defaultScs, lockLte: lockLte, lockNr: lockNr, unlock: unlockCell, reattach: reattach }
+    cellLock: { defaultScs: defaultScs, lockLte: lockLte, lockNr: lockNr, unlock: unlockCell, reattach: reattach, waitRegistered: waitRegistered }
   };
 })();

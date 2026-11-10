@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cell scan · SimpleAdmin</title>
-  <link rel="stylesheet" href="css/app.css?v=20261109-1">
+  <link rel="stylesheet" href="css/app.css?v=20261110-1">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -13,7 +13,6 @@
       document.documentElement.style.colorScheme = theme;
     })();
   </script>
-  <script src="js/auth.js?v=20261109-1"></script>
 </head>
 <body data-page="scan">
   <div class="app">
@@ -50,8 +49,9 @@
         </section>
         <section class="card" id="cell-lock">
           <h2>Cell lock</h2>
-          <p class="section-note">A locked modem uses only that cell. If the cell is weak or far away you can lose the connection, so keep this page open to unlock. Locks are not saved by every firmware: check the status below.</p>
-          <label class="check-field"><input type="checkbox" id="lock-reattach" checked>Re-register after locking so it takes effect now (brief connection drop)</label>
+          <p class="section-note">A locked modem uses only that cell. A lock on a cell the modem cannot use (another operator, a disabled band, a cell with no real signal) leaves it searching with no internet. If that happens, press Unlock 4G and Unlock 5G: they work even while the modem is searching. The lock is kept after a restart until you unlock.</p>
+          <label class="check-field"><input type="checkbox" id="lock-reattach" checked>Restart the radio after locking so the lock is used now (a few seconds without connection)</label>
+          <label class="check-field"><input type="checkbox" id="lock-verify" checked>Undo the lock automatically if the modem cannot connect to the cell (checked for 30 seconds)</label>
           <label class="field"><span>5G subcarrier spacing (kHz)</span><select id="lock-scs"><option value="auto">Automatic for the band</option><option value="15">15</option><option value="30">30</option><option value="60">60</option><option value="120">120</option></select></label>
           <div class="form-actions"><button class="secondary" id="lock-status-read" type="button">Read lock status</button><button class="danger-button" id="unlock-4g" type="button">Unlock 4G</button><button class="danger-button" id="unlock-5g" type="button">Unlock 5G</button></div>
           <p class="result" id="lock-result" role="status" aria-live="polite"></p>
@@ -61,9 +61,9 @@
     </div></div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261109-1"></script>
-  <script src="js/at.js?v=20261109-1"></script>
-  <script src="js/operators.js?v=20261109-1"></script>
-  <script src="js/scanner.js?v=20261109-1"></script>
+  <script src="js/shell.js?v=20261110-1"></script>
+  <script src="js/at.js?v=20261110-1"></script>
+  <script src="js/operators.js?v=20261110-1"></script>
+  <script src="js/scanner.js?v=20261110-1"></script>
 </body>
 </html>

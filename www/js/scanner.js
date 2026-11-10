@@ -79,8 +79,19 @@
 
   function isNum(v) { return /^\d+$/.test(String(v || "").trim()); }
 
-  function makeLock(rat, earfcn, pci, band) {
-    return isNum(earfcn) && isNum(pci) ? { rat: rat, earfcn: String(earfcn).trim(), pci: String(pci).trim(), band: String(band || "").replace(/\D/g, "") } : null;
+  function makeLock(rat, earfcn, pci, band, plmn) {
+    return isNum(earfcn) && isNum(pci) ? { rat: rat, earfcn: String(earfcn).trim(), pci: String(pci).trim(), band: String(band || "").replace(/\D/g, ""), plmn: plmn || "" } : null;
+  }
+
+  // operator of a cell as "mcc:mnc" (the MNC is compared as a number: "01" and "1" are the same operator)
+  var servingPlmn = "";
+  function plmnKey(mcc, mnc) {
+    var m = String(mcc || "").replace(/\D/g, ""), n = String(mnc || "").replace(/\D/g, "");
+    return m && n ? m + ":" + parseInt(n, 10) : "";
+  }
+  function plmnFromNumeric(numeric) {
+    var d = String(numeric || "").replace(/\D/g, "");
+    return d.length >= 5 ? plmnKey(d.slice(0, 3), d.slice(3)) : "";
   }
 
   /* ---------- cell lock ---------- */
@@ -108,9 +119,59 @@
     return band || null;
   }
 
+  // Downlink EARFCN ranges of the common LTE bands (3GPP 36.101).
+  var LTE_BANDS = [
+    [1, 0, 599], [2, 600, 1199], [3, 1200, 1949], [4, 1950, 2399], [5, 2400, 2649], [7, 2750, 3449], [8, 3450, 3799],
+    [12, 5010, 5179], [13, 5180, 5279], [17, 5730, 5849], [20, 6150, 6449], [25, 8040, 8689], [26, 8690, 9039],
+    [28, 9210, 9659], [38, 37750, 38249], [39, 38250, 38649], [40, 38650, 39649], [41, 39650, 41589],
+    [42, 41590, 43589], [43, 43590, 45589], [66, 66436, 67335], [71, 68586, 68935]
+  ];
+
+  function lteBandFromEarfcn(earfcn) {
+    var n = Number(earfcn);
+    for (var i = 0; i < LTE_BANDS.length; i++) if (n >= LTE_BANDS[i][1] && n <= LTE_BANDS[i][2]) return LTE_BANDS[i][0];
+    return 0;
+  }
+
+  function enabledBands(type) {
+    return AT.soft('AT+QNWPREFCFG="' + type + '"').then(function (r) {
+      if (!r.ok) return null;
+      var m = new RegExp('"' + type + '",([0-9:]+)').exec(r.text);
+      return m ? m[1].split(":").filter(Boolean) : null;
+    });
+  }
+
+  // Why a lock would leave the modem "searching": another operator's cell, or a band the modem has switched off.
+  function precheck(target, band) {
+    var warnings = [];
+    var plmnStep = servingPlmn ? Promise.resolve() : AT.soft("AT+QSPN").then(function (r) {
+      if (r.ok) servingPlmn = plmnFromNumeric(AT.fields(AT.line(r.text, "+QSPN:"))[4]);
+    });
+    return plmnStep.then(function () {
+      if (target.plmn && servingPlmn && target.plmn !== servingPlmn) {
+        warnings.push("This cell belongs to another operator (" + target.plmn.replace(":", "-") + ", your SIM uses " + servingPlmn.replace(":", "-") + "). The modem cannot connect to it and would only search.");
+      }
+      if (target.rat === "LTE") {
+        var lteBand = lteBandFromEarfcn(target.earfcn);
+        if (!lteBand) return null;
+        return enabledBands("lte_band").then(function (list) {
+          if (list && list.indexOf(String(lteBand)) === -1) warnings.push("LTE band " + lteBand + " is switched off on this modem (Network page), so it cannot use this cell.");
+        });
+      }
+      return enabledBands("nsa_nr5g_band").then(function (nsa) {
+        return enabledBands("nr5g_band").then(function (sa) {
+          var on = (nsa && nsa.indexOf(String(band)) !== -1) || (sa && sa.indexOf(String(band)) !== -1);
+          if ((nsa || sa) && !on) warnings.push("5G band n" + band + " is switched off on this modem (Network page), so it cannot use this cell.");
+        });
+      });
+    }).then(function () { return warnings; });
+  }
+
   function lockToCell(target) {
     if (busy) return;
     var reattach = $("lock-reattach").checked;
+    var verify = $("lock-verify").checked;
+    var kind = target.rat === "LTE" ? "4g" : "5g";
     var command, label;
     var band = "", scs = "";
     if (target.rat === "LTE") {
@@ -123,42 +184,61 @@
       command = 'AT+QNWLOCK="common/5g",' + target.pci + "," + target.earfcn + "," + scs + "," + band;
       label = "NR5G  ARFCN " + target.earfcn + ", PCI " + target.pci + ", band n" + band + ", SCS " + scs + " kHz";
     }
-    if (!window.confirm("Lock the modem to this cell?\n\n" + label + "\n\n" + command +
-      "\n\nThe modem will use only this cell. If its signal is weak you can lose the connection; use Unlock to undo." +
-      (reattach ? "\nThe modem re-registers afterwards (brief connection drop)." : ""))) return;
 
     guard("lock-result", function () {
-      setResult("lock-result", "Sending the lock command…");
-      var lock = target.rat === "LTE" ? AT.cellLock.lockLte(target.earfcn, target.pci) : AT.cellLock.lockNr(target.pci, target.earfcn, scs, band);
-      return lock.then(function () {
-        if (!reattach) return "Locked. The lock is used when the modem next selects a cell.";
-        setResult("lock-result", "Locked. Re-registering to the network…");
-        return AT.cellLock.reattach().then(function () { return "Locked and re-registered."; }, function (error) {
-          if (error.timedOut) return "Locked. Registration is taking long, the modem may still be connecting.";
+      setResult("lock-result", "Checking the cell…");
+
+      function applyLock() {
+        setResult("lock-result", "Sending the lock command…");
+        var lock = target.rat === "LTE" ? AT.cellLock.lockLte(target.earfcn, target.pci) : AT.cellLock.lockNr(target.pci, target.earfcn, scs, band);
+        return lock.then(function () {
+          if (!reattach) return "Locked. The lock is used when the modem next selects a cell.";
+          setResult("lock-result", "Locked. Restarting the radio…");
+          return AT.cellLock.reattach().then(function () {
+            if (!verify) return "Locked. The radio was restarted.";
+            return AT.cellLock.waitRegistered(30000, function (left) {
+              setResult("lock-result", "Waiting for the modem to connect to the cell… (" + left + " s)");
+            }).then(function (state) {
+              if (state === true) return "Locked and connected.";
+              if (state === null) return "Locked. The connection could not be checked.";
+              setResult("lock-result", "The modem could not connect to this cell. Removing the lock…");
+              return AT.cellLock.unlock(kind).then(function () { return AT.cellLock.reattach(); }).then(function () {
+                return AT.cellLock.waitRegistered(25000);
+              }).then(function (back) {
+                return { undone: true, message: "The modem could not connect to this cell, so the lock was removed" + (back === false ? ", but it is still searching: press Unlock 4G and Unlock 5G, or restart the modem." : " and it is connected again.") };
+              });
+            });
+          });
+        }, function (error) {
+          if (error.modemError) throw new Error(error.message + " (the modem rejected the lock command)");
           throw error;
         });
-      }, function (error) {
-        if (error.modemError) throw new Error(error.message + " (AT+QNWLOCK is not listed in the RG50xQ manual, this modem may not support cell locking. Run Diagnostics to check.)");
-        throw error;
-      }).then(function (message) {
-        setResult("lock-result", message, "success");
-        return readLockStatus();
+      }
+
+      return precheck(target, band).then(function (warnings) {
+        var text = "Lock the modem to this cell?\n\n" + label + "\n\n" + command +
+          (warnings.length ? "\n\nWARNING:\n- " + warnings.join("\n- ") : "") +
+          "\n\nThe modem will use only this cell." +
+          (verify ? "\nIf it cannot connect within 30 s the lock is removed again." : "\nIf it cannot connect, press Unlock.");
+        if (!window.confirm(text)) { setResult("lock-result", "Nothing was changed."); return; }
+        return applyLock().then(function (outcome) {
+          var undone = typeof outcome === "object";
+          setResult("lock-result", undone ? outcome.message : outcome, undone ? "error" : "success");
+          return readLockStatus();
+        });
       });
     });
   }
 
   function unlock(kind) {
     if (busy) return;
-    if (!window.confirm("Remove the " + kind.toUpperCase() + " cell lock?" + ($("lock-reattach").checked ? "\nThe modem re-registers afterwards (brief connection drop)." : ""))) return;
+    if (!window.confirm("Remove the " + kind.toUpperCase() + " cell lock?" + ($("lock-reattach").checked ? "\nThe radio is restarted afterwards (a few seconds without connection)." : ""))) return;
     guard("lock-result", function () {
       setResult("lock-result", "Unlocking…");
       return AT.cellLock.unlock(kind).then(function () {
         if (!$("lock-reattach").checked) return "Unlocked.";
-        setResult("lock-result", "Unlocked. Re-registering to the network…");
-        return AT.cellLock.reattach().then(function () { return "Unlocked and re-registered."; }, function (error) {
-          if (error.timedOut) return "Unlocked. Registration is taking long, the modem may still be connecting.";
-          throw error;
-        });
+        setResult("lock-result", "Unlocked. Restarting the radio…");
+        return AT.cellLock.reattach().then(function () { return "Unlocked. The radio was restarted, the modem now searches for the best cell."; });
       }).then(function (message) {
         setResult("lock-result", message, "success");
         return readLockStatus();
@@ -200,7 +280,7 @@
         pci: value(fields, 4),
         rsrp: value(fields, 5),
         band: band || "—",
-        lock: makeLock(rat, value(fields, 3), value(fields, 4), band)
+        lock: makeLock(rat, value(fields, 3), value(fields, 4), band, plmnKey(value(fields, 1), value(fields, 2)))
       };
     });
     renderScan();
@@ -260,19 +340,21 @@
   //           "NR5G-NSA",mcc,mnc,PCID,RSRP,SINR,RSRQ,ARFCN,band
   function parseServing(text) {
     var rows = [];
-    function add(rat, band, earfcn, pci, rsrp) {
-      rows.push({ cells: [rat, band ? (rat === "NR5G" ? "n" : "B") + band : "", earfcn, pci, rsrp], lock: makeLock(rat, earfcn, pci, band) });
+    function add(rat, band, earfcn, pci, rsrp, plmn) {
+      if (plmn && !servingPlmn) servingPlmn = plmn;
+      rows.push({ cells: [rat, band ? (rat === "NR5G" ? "n" : "B") + band : "", earfcn, pci, rsrp], lock: makeLock(rat, earfcn, pci, band, plmn) });
     }
+    servingPlmn = "";
     AT.lines(text, "+QENG:").forEach(function (line) {
       if (/neighbourcell/i.test(line)) return;
       var f = AT.fields(line);
       if (f[0] === "servingcell") {
-        if (/^LTE$/i.test(f[2])) add("LTE", value(f, 9), value(f, 8), value(f, 7), value(f, 13));
-        else if (/NR5G-SA/i.test(f[2])) add("NR5G", value(f, 10), value(f, 9), value(f, 7), value(f, 12));
+        if (/^LTE$/i.test(f[2])) add("LTE", value(f, 9), value(f, 8), value(f, 7), value(f, 13), plmnKey(f[4], f[5]));
+        else if (/NR5G-SA/i.test(f[2])) add("NR5G", value(f, 10), value(f, 9), value(f, 7), value(f, 12), plmnKey(f[4], f[5]));
       } else if (/^LTE$/i.test(f[0])) {
-        add("LTE", value(f, 7), value(f, 6), value(f, 5), value(f, 11));
+        add("LTE", value(f, 7), value(f, 6), value(f, 5), value(f, 11), plmnKey(f[2], f[3]));
       } else if (/NR5G-NSA/i.test(f[0])) {
-        add("NR5G", value(f, 8), value(f, 7), value(f, 3), value(f, 4));
+        add("NR5G", value(f, 8), value(f, 7), value(f, 3), value(f, 4), plmnKey(f[1], f[2]));
       }
     });
     renderRows($("serving-rows"), rows, 6, "No serving cell reported (the modem may not be registered).");

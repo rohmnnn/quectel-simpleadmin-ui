@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>More · SimpleAdmin</title>
-  <link rel="stylesheet" href="css/app.css?v=20261109-1">
+  <link rel="stylesheet" href="css/app.css?v=20261110-1">
   <script>
     (function () {
       var saved = localStorage.getItem("theme");
@@ -13,7 +13,6 @@
       document.documentElement.style.colorScheme = theme;
     })();
   </script>
-  <script src="js/auth.js?v=20261109-1"></script>
 </head>
 <body data-page="more">
   <div class="app">
@@ -31,7 +30,6 @@
             <a href="/watchcat.html">Watchcat</a>
             <a href="/diagnostics.html">Diagnostics</a>
             <a href="/console">Console</a>
-            <a href="#" id="logout-link" style="display:none">Log out</a>
             <button type="button" class="more-row" data-theme-row>
               <span>Dark mode</span>
               <span class="switch" data-theme-switch role="switch" aria-checked="false" aria-label="Dark mode, off"></span>
@@ -44,14 +42,6 @@
     </div>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
-  <script src="js/shell.js?v=20261109-1"></script>
-  <script>
-    if (window.SA_AUTH) SA_AUTH.ready.then(function () {
-      if (SA_AUTH.mode !== "session") return;
-      var link = document.getElementById("logout-link");
-      link.style.display = "";
-      link.addEventListener("click", function (e) { e.preventDefault(); SA_AUTH.logout(); });
-    });
-  </script>
+  <script src="js/shell.js?v=20261110-1"></script>
 </body>
 </html>

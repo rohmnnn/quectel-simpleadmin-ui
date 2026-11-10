@@ -9,7 +9,7 @@
   // written for another module; the RG50xQ manual does not list +QRSRP/+QRSRQ/+QSINR/+CGCONTRDP),
   // the first failing poll tests every command on its own and drops the rejected ones for the session.
   // Order matters: a chained AT line stops at the first rejected command, so the likely-rejected ones go last.
-  var COMMANDS = ["AT+QSIMSTAT?", "AT+CSQ", "AT+QTEMP", "AT+QSPN", 'AT+QENG="servingcell"', "AT+QNWINFO", "AT+CGPADDR=1", "AT+CGDCONT?",
+  var COMMANDS = ["AT+QSIMSTAT?", "AT+CSQ", "AT+QTEMP", "AT+QSPN", 'AT+QENG="servingcell"', "AT+QNWINFO", 'AT+QMAP="WWAN"', "AT+CGPADDR=1", "AT+CGDCONT?",
     "AT+QUIMSLOT?", "AT+CGCONTRDP=1", "AT+QRSRP", "AT+QRSRQ", "AT+QSINR"];
   var DROPPED_KEY = "home-dropped-commands";
   var probed = false;
@@ -625,7 +625,6 @@
     var controller = new AbortController();
     var timerId = setTimeout(function () { controller.abort(); }, timeoutMs);
     return fetch(url, { signal: controller.signal, cache: "no-store" }).then(function (response) {
-      if (response.status === 401 && window.SA_AUTH && SA_AUTH.mode === "session") SA_AUTH.goLogin();
       if (!response.ok) throw new Error(String(response.status));
       return response.text();
     }).finally(function () { clearTimeout(timerId); });
