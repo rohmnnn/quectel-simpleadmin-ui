@@ -381,6 +381,18 @@
     renderRows($("neighbor-rows"), rows, 5, "No neighboring cells were returned.");
   }
 
+  // AT+QENDC (manual 5.13): +QENDC: <endc_avl>,<plmn_info_list_r15_avl>,<endc_rstr>,<5g_basic>
+  function endcSummary(text) {
+    var l = AT.line(text, "+QENDC:");
+    if (!l) return "";
+    var f = AT.fields(l);
+    if (f[0] === "0") return "5G (EN-DC): this LTE cell does NOT offer 5G. A phone may be on another anchor cell or band.";
+    if (f[1] === "0") return "5G (EN-DC): the registered operator does not signal 5G support here.";
+    if (f[2] === "0") return "5G (EN-DC): the network restricts 5G for this connection.";
+    if (f[0] === "1" && f[2] === "1") return "5G (EN-DC): this LTE cell offers 5G and it is not restricted.";
+    return "";
+  }
+
   function readCells() {
     var withNr = window.confirm('Also read the 5G neighbors with +QNWCFG="nr5g_meas_info",1?\n\nOK = serving cell, LTE and NR5G neighbors\nCancel = serving cell and LTE neighbors only');
     guard("neighbor-result", function () {
@@ -394,7 +406,8 @@
           if (r.ok) { okCount++; all += "\n" + r.text; }
         });
       }
-      var chain = step('AT+QENG="servingcell"', 10000).then(function () { return step('AT+QENG="neighbourcell"', 15000); });
+      var chain = step('AT+QENG="servingcell"', 10000).then(function () { return step("AT+QENDC", 8000); })
+        .then(function () { return step('AT+QENG="neighbourcell"', 15000); });
       if (withNr) {
         chain = chain.then(function () { return step('AT+QNWCFG="nr5g_meas_info",1', 8000); })
           .then(function () { return step('AT+QNWCFG="nr5g_meas_info"', 8000); });
@@ -404,7 +417,10 @@
         var serving = parseServing(all);
         parseNeighbors(all);
         if (!okCount) setResult("neighbor-result", "The modem rejected every query. See the raw response below.", "error");
-        else setResult("neighbor-result", serving ? "Cells read. Press Lock on a row to lock to that cell." : "Cells read, but no serving cell was reported.", "success");
+        else {
+          var endc = endcSummary(all);
+          setResult("neighbor-result", (serving ? "Cells read. Press Lock on a row to lock to that cell." : "Cells read, but no serving cell was reported.") + (endc ? " " + endc : ""), "success");
+        }
       });
     });
   }

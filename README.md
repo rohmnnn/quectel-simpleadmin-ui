@@ -27,7 +27,7 @@ Checked with the Diagnostics page on firmware **RG501QEUAAR13A01M4G**. The AT ma
 
 | Feature | Commands | Result on RG501QEUAAR13A01M4G |
 |---|---|---|
-| Home: SIM, operator, signal, temperature, bands, carrier aggregation | `+QENG`, `+CSQ`, `+QTEMP`, `+QSPN`, `+QNWINFO`, `+QCAINFO` | Works |
+| Home: SIM, operator, signal, temperature, bands, carrier aggregation | `+QENG`, `+CSQ`, `+QTEMP`, `+QSPN`, `+QNWINFO`, `+QCAINFO` | Works. Carriers and their bandwidth come from `+QCAINFO` (SINR is in dB on this firmware) |
 | Home: per-antenna values | `+QRSRP`, `+QRSRQ`, `+QSINR` | Works (not in the manual) |
 | Home: IPv4 and IPv6, APN | `+QMAP="WWAN"`, `+CGPADDR`, `+CGCONTRDP` | Works. `+CGPADDR` puts IPv4 and IPv6 in one quoted string and writes IPv6 as 16 decimal bytes: the UI converts it |
 | Network: bands, mode, NR mode, APN, SIM slot | `+QNWPREFCFG`, `+CGDCONT`, `+QUIMSLOT` | Works |
@@ -46,7 +46,7 @@ Other firmware versions may differ: run **Diagnostics** (`/diagnostics.html`) an
 ## Features
 
 - Responsive shell: desktop sidebar, tablet icon rail, phone tab bar with a More menu; light and dark themes.
-- Home dashboard with SIM/network status, signal scoring, per-antenna values, trends, uptime, temperature, IPv4 and IPv6.
+- Home dashboard with SIM/network status, signal scoring, per-antenna values, **carrier aggregation** (the combined 4G carriers such as B3 + B1, with bandwidth, PCI, RSRP and the 5G carrier when connected), trends, uptime, temperature, IPv4 and IPv6.
 - **One-click cell lock** with safety checks (see below).
 - Network configuration: supported LTE/NR bands, APN, SIM slot, preferred mode, NR mode, manual cell lock.
 - SMS inbox, deletion and sending, with an optional default country code.
@@ -120,6 +120,7 @@ query string, so the new files are loaded.
 |---|---|
 | IPv6 empty, only IPv4 | The APN IP type must be **IPV4V6** (Network > APN). Then check `AT+QMAP="WWAN"` in Diagnostics |
 | A field on Home is empty | Run Diagnostics: the field is missing when its command shows `ERROR` |
+| 5G does not show although a phone gets it | 5G shows only while data flows. Start a download, then read the cells: an `NR5G-NSA` row means it works. The page also prints the `AT+QENDC` result (does this LTE cell offer 5G?). Check that your 5G bands (for example n40 and n41) are enabled on the Network page and that antennas are connected to all four ports |
 | After a cell lock the modem only searches | Press **Unlock 4G** and **Unlock 5G**. Most often the cell belongs to another operator, its band is switched off, or it has no real signal |
 | Page says the device did not answer | The AT port may be busy. Wait a few seconds: the UI sends one request at a time and pauses after a timeout |
 | Settings row greyed out | The modem rejected that command (for example the DNS proxy). Diagnostics shows which ones |

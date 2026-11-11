@@ -10,7 +10,7 @@
     { name: "Settings", cmds: ['AT+QMAP="MPDN_RULE"', 'AT+QMAP="DHCPV4DNS"', 'AT+QCFG="usbnet"', 'AT+QCFG="data_interface"', 'AT+QCFG="pcie/mode"', 'AT+QETH="ipptmac"', 'AT+QETH="rgmii"'] },
     { name: "Device info", cmds: ["AT+CGMI", "AT+CGMM", "AT+QGMR", "AT+CGMR", "AT+CIMI", "AT+QCCID", "AT+ICCID", "AT+CGSN", 'AT+QMAP="LANIP"', 'AT+QMAP="WWAN"', "AT+CNUM"] },
     { name: "SMS", cmds: ["AT+CMGF?", "AT+CSCS?", "AT+CSCS=?", "AT+CPMS?", "AT+CPMS=?", "AT+CSCA?", "AT+CNMI?", "AT+CMGD=?"] },
-    { name: "Cell scan", cmds: ['AT+QENG="neighbourcell"', "AT+QSCAN=?", "AT+COPS?"] }
+    { name: "Cell scan", cmds: ['AT+QENG="neighbourcell"', "AT+QENDC", "AT+QSCAN=?", "AT+COPS?"] }
   ];
   var SLOW = { 'AT+QETH="rgmii"': 25000 };
   var MANUAL = { // commands the RG50xQ manual V1.1.1 does NOT list

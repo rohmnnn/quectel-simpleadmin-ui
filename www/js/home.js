@@ -8,9 +8,10 @@
   // The poll sends these queries in one request. If the modem rejects some of them (this UI was
   // written for another module; the RG50xQ manual does not list +QRSRP/+QRSRQ/+QSINR/+CGCONTRDP),
   // the first failing poll tests every command on its own and drops the rejected ones for the session.
-  // Order matters: a chained AT line stops at the first rejected command, so the likely-rejected ones go last.
+  // Order matters: a chained AT line stops at the first rejected command, so the likely-rejected ones go last
+  // (+QCAINFO is last: an error there only loses the carrier aggregation card).
   var COMMANDS = ["AT+QSIMSTAT?", "AT+CSQ", "AT+QTEMP", "AT+QSPN", 'AT+QENG="servingcell"', "AT+QNWINFO", 'AT+QMAP="WWAN"', "AT+CGPADDR=1", "AT+CGDCONT?",
-    "AT+QUIMSLOT?", "AT+CGCONTRDP=1", "AT+QRSRP", "AT+QRSRQ", "AT+QSINR"];
+    "AT+QUIMSLOT?", "AT+CGCONTRDP=1", "AT+QRSRP", "AT+QRSRQ", "AT+QSINR", "AT+QCAINFO"];
   var DROPPED_KEY = "home-dropped-commands";
   var probed = false;
 
@@ -593,6 +594,96 @@
     });
   }
 
+  /* ---- carrier aggregation ---- */
+
+  // +QCAINFO: "PCC"|"SCC",<freq>,<bandwidth code>,"LTE BAND n",<state>,<PCID>,<RSRP>,<RSRQ>,<RSSI>,<SINR>   (manual 5.12)
+  // On this firmware SINR is already in dB (it can be negative). The EN-DC 5G carrier comes from +QENG.
+  var caData = { carriers: [], nr: null };
+  var LTE_BW_MHZ = { "6": 1.4, "15": 3, "25": 5, "50": 10, "75": 15, "100": 20 };
+  var CA_STATE = { "0": "not configured", "1": "configured, idle", "2": "active" };
+
+  function parseCa(text) {
+    var carriers = [];
+    var nr = null;
+    String(text || "").split("\n").forEach(function (raw) {
+      var line = raw.trim();
+      var f;
+      if (line.indexOf("+QCAINFO:") === 0) {
+        f = AT.fields(line);
+        var type = String(f[0] || "").toUpperCase();
+        if (type !== "PCC" && type !== "SCC") return;
+        var m = /(LTE|NR5G)\s+BAND\s+(\d+)/i.exec(f[3] || "");
+        var rat = m && /NR/i.test(m[1]) ? "NR5G" : "LTE";
+        carriers.push({
+          type: type, rat: rat, band: m ? m[2] : "", bw: rat === "LTE" ? LTE_BW_MHZ[String(f[2]).trim()] || 0 : 0,
+          earfcn: f[1], pci: f[5], rsrp: f[6], rsrq: f[7], sinr: f[9],
+          state: type === "PCC" ? "primary" : (CA_STATE[String(f[4]).trim()] || "")
+        });
+      } else if (line.indexOf("+QENG:") === 0) {
+        f = AT.fields(line);
+        if (/^NR5G-NSA$/i.test(f[0])) {
+          nr = { type: "NR", rat: "NR5G", band: f[8], bw: 0, earfcn: f[7], pci: f[3], rsrp: f[4], rsrq: f[6], sinr: f[5], state: "5G (EN-DC)" };
+        } else if (f[0] === "servingcell" && /^NR5G-SA$/i.test(f[2])) {
+          nr = { type: "NR", rat: "NR5G", band: f[10], bw: 0, earfcn: f[9], pci: f[7], rsrp: f[12], rsrq: f[13], sinr: f[14], state: "5G (SA)" };
+        }
+      }
+    });
+    // an NR carrier that +QCAINFO already listed is not added twice
+    if (nr && carriers.some(function (c) { return c.rat === "NR5G" && c.band === nr.band && String(c.earfcn) === String(nr.earfcn); })) nr = null;
+    return { carriers: carriers, nr: nr };
+  }
+
+  function escHtml(v) {
+    return String(v == null ? "" : v).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; });
+  }
+
+  // Text for the card. Standard names (3A-1A, 3A-1A_n40A) are only given when every band appears once,
+  // because two carriers of one band can be contiguous (class C) and that cannot be told from this data.
+  function caSummary(data) {
+    var lte = data.carriers.filter(function (c) { return c.rat === "LTE"; });
+    var nrList = data.carriers.filter(function (c) { return c.rat === "NR5G"; });
+    if (data.nr) nrList.push(data.nr);
+    var parts = [];
+    if (lte.length) {
+      var total = lte.reduce(function (sum, c) { return sum + c.bw; }, 0);
+      parts.push("<strong>" + (lte.length > 1 ? lte.length + "CA" : "No carrier aggregation") + "</strong> on 4G: " +
+        lte.map(function (c) { return "B" + escHtml(c.band) + (c.bw ? " (" + c.bw + " MHz)" : ""); }).join(" + ") +
+        (total && lte.length > 1 ? " · " + total + " MHz total" : ""));
+    }
+    if (nrList.length) parts.push("<strong>5G</strong>: " + nrList.map(function (c) { return "n" + escHtml(c.band); }).join(" + "));
+    var bands = lte.map(function (c) { return c.band; });
+    var distinct = bands.every(function (b, i) { return bands.indexOf(b) === i; });
+    var name = "";
+    if (lte.length > 1 && distinct) name = "CA_" + bands.map(function (b) { return b + "A"; }).join("-");
+    if (lte.length && nrList.length && distinct && nrList.length === 1) name = "DC_" + bands.map(function (b) { return b + "A"; }).join("-") + "_n" + nrList[0].band + "A";
+    return { html: parts.join("<br>"), name: name, lteCount: lte.length };
+  }
+
+  function paintCa() {
+    var card = document.getElementById("ca-card");
+    if (!card) return;
+    var rows = caData.carriers.slice();
+    if (caData.nr) rows.push(caData.nr);
+    if (!rows.length) {
+      card.className = "card ca-card is-empty";
+      card.innerHTML = '<p class="ant-empty">No data</p>';
+      return;
+    }
+    var info = caSummary(caData);
+    var dash = function (v) { return v === "" || v === "-" || v == null ? "—" : escHtml(v); };
+    var body = rows.map(function (c) {
+      return "<tr><td>" + escHtml(c.type) + "</td><td>" + (c.rat === "NR5G" ? "n" : "B") + dash(c.band) + "</td><td>" + (c.bw ? c.bw + " MHz" : "—") + "</td><td>" +
+        dash(c.earfcn) + "</td><td>" + dash(c.pci) + "</td><td>" + dash(c.rsrp) + "</td><td>" + dash(c.rsrq) + "</td><td>" + dash(c.sinr) + "</td><td>" + dash(c.state) + "</td></tr>";
+    }).join("");
+    card.className = "card ca-card";
+    card.innerHTML = '<p class="ca-summary">' + info.html + (info.name ? '<br><span class="ca-name">' + escHtml(info.name) + "</span>" : "") + "</p>" +
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Carrier</th><th>Band</th><th>Bandwidth</th><th>EARFCN</th><th>PCI</th><th>RSRP</th><th>RSRQ</th><th>SINR</th><th>State</th></tr></thead><tbody>' + body + "</tbody></table></div>" +
+      (info.lteCount === 1 && !caData.nr ? '<p class="ca-note">Only the primary carrier is in use. Secondary carriers are added when there is traffic and the network offers them.</p>' :
+        (rows.some(function (c) { return c.state === "configured, idle"; }) ? '<p class="ca-note">"Configured, idle" carriers become active when data flows.</p>' : ""));
+  }
+
+  /* ---- end carrier aggregation ---- */
+
   function renderAll() {
     document.getElementById("home-skeleton").hidden = true;
     document.getElementById("home-ready").hidden = false;
@@ -602,6 +693,7 @@
     if (!inactive) {
       paintMeters();
       paintAntennas();
+      paintCa();
       paintTables();
       paintChart("rsrp");
       paintChart("sinr");
@@ -641,6 +733,7 @@
     }).then(function (text) {
       state.parseNetworkInfo(text.split("\n"));
       applyPdpAddress(text);
+      caData = parseCa(text);
       var ping = state.sim !== "Inactive" ? fetchText("/cgi-bin/get_ping", 8000) : Promise.resolve("");
       return ping.then(function (body) {
         if (body) state.internetConnection = body.trim() === "OK" ? "Connected" : "Disconnected";
