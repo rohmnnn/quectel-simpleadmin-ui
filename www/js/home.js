@@ -734,8 +734,9 @@
       var cpu = Number(resData.cpu) || 0;
       cards.push(resCard(RES_ICON_CPU, "CPU", cpu.toFixed(0) + "%", cpu,
         cores + " core" + (cores > 1 ? "s" : "") + " · " + (Number(resData.running) || 0) + " running of " + (Number(resData.procs) || 0) + " processes"));
-      if (load) cards.push(resCard(RES_ICON_LOAD, "Load average", load[0], Math.min(100, Number(load[0]) / cores * 100),
-        "5 min " + load[1] + " · 15 min " + load[2]));
+      // no bar: on this kind of device the load stays near 1.00 even when the CPU is idle (see the README)
+      if (load) cards.push(resCard(RES_ICON_LOAD, "Load average", load[0], null,
+        "5 min " + load[1] + " · 15 min " + load[2] + "<br>Tasks running or waiting. Not the same as CPU %."));
       var total = Number(resData.memTotalKB) || 0;
       var used = Math.max(0, total - (Number(resData.memAvailKB) || 0));
       if (total) cards.push(resCard(RES_ICON_MEM, "Memory", fmtKB(used) + " / " + fmtKB(total), used / total * 100, fmtKB(total - used) + " available"));

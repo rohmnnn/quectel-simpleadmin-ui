@@ -122,6 +122,10 @@ storage, `www/cgi-bin/get_resources` must be executable on the modem (adb push c
 chmod 755 /usrdata/simpleadmin/www/cgi-bin/get_resources
 ```
 
+**Load average is not CPU %.** It counts the tasks that are running or waiting, including tasks stuck waiting for hardware
+(a driver or the modem firmware). On an embedded modem that number often stays near 1.00 even when the CPU is idle, so
+the Load box has no bar. Use the **CPU** box for how busy the processor really is.
+
 The script only reads `/proc` and `df`, takes half a second to answer and changes nothing. Home asks for it every 5 seconds
 and stops asking if it is not installed. The shell scripts in `cgi-bin` must keep LF line endings (not CRLF).
 
