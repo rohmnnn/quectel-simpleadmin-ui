@@ -684,6 +684,82 @@
 
   /* ---- end carrier aggregation ---- */
 
+  /* ---- device resources ---- */
+
+  // CPU %, memory and storage come from the optional script cgi-bin/get_resources (read-only, see README).
+  // Without it the card still shows the load average that cgi-bin/get_uptime already returns.
+  var resData = null;
+  var resMode = "unknown";   // "unknown" | "cgi" | "none" (script not installed)
+  var resFails = 0;
+  var resTick = 0;
+  var resLoad = null;
+
+  function parseLoad(text) {
+    var m = /load averages?:\s*([\d.]+),?\s+([\d.]+),?\s+([\d.]+)/i.exec(String(text || ""));
+    return m ? [m[1], m[2], m[3]] : null;
+  }
+
+  function fmtKB(kb) {
+    var n = Number(kb) || 0;
+    return n >= 1048576 ? (n / 1048576).toFixed(1) + " GB" : Math.round(n / 1024) + " MB";
+  }
+
+  function barClass(pct) { return "res-bar" + (pct >= 90 ? " is-bad" : pct >= 75 ? " is-warn" : ""); }
+
+  function resCard(icon, title, value, pct, sub) {
+    return '<article class="card info"><h3><span class="info-ic ic-dev"><svg viewBox="0 0 24 24" aria-hidden="true">' + icon + "</svg></span>" + title + "</h3>" +
+      '<p class="num">' + value + "</p>" +
+      (pct == null ? "" : '<div class="' + barClass(pct) + '"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></div>') +
+      '<span class="res-sub">' + sub + "</span></article>";
+  }
+
+  var RES_ICON_CPU = '<rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/>';
+  var RES_ICON_MEM = '<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v8M11 8v8M15 8v8M6 19v-3M18 19v-3"/>';
+  var RES_ICON_DISK = '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>';
+
+  function paintResources() {
+    var host = document.getElementById("res-infos");
+    if (!host) return;
+    var load = resData && resData.load ? resData.load.map(function (n) { return Number(n).toFixed(2); }) : resLoad;
+    var cards = [];
+    var loadText = load ? "Load " + load.join(" · ") + " (1 / 5 / 15 min)" : "";
+    if (resData) {
+      var cores = Number(resData.cores) || 1;
+      cards.push(resCard(RES_ICON_CPU, "CPU", Number(resData.cpu).toFixed(0) + "%", Number(resData.cpu),
+        loadText + (loadText ? " · " : "") + cores + " core" + (cores > 1 ? "s" : "") + " · " + (Number(resData.running) || 0) + " running of " + (Number(resData.procs) || 0) + " processes"));
+      var total = Number(resData.memTotalKB) || 0;
+      var used = Math.max(0, total - (Number(resData.memAvailKB) || 0));
+      if (total) cards.push(resCard(RES_ICON_MEM, "Memory", fmtKB(used) + " / " + fmtKB(total), used / total * 100, fmtKB(total - used) + " available"));
+      (resData.disks || []).slice(0, 2).forEach(function (d) {
+        var size = Number(d.sizeKB) || 0, u = Number(d.usedKB) || 0;
+        if (size) cards.push(resCard(RES_ICON_DISK, "Storage " + String(d.mount).replace(/[^\w/]/g, ""), fmtKB(u) + " / " + fmtKB(size), u / size * 100, fmtKB(size - u) + " free"));
+      });
+    } else {
+      cards.push(resCard(RES_ICON_CPU, "CPU load", load ? load[0] : "—", null,
+        (loadText || "Load average unavailable") + (resMode === "none" ? "<br>CPU %, memory and storage need cgi-bin/get_resources (see the README)." : "")));
+    }
+    host.innerHTML = cards.join("");
+  }
+
+  function pollResources() {
+    if (resMode === "none") return;
+    fetchText("/cgi-bin/get_resources", 9000).then(function (body) {
+      var d = JSON.parse(body);
+      if (!d || typeof d.cpu !== "number") throw new Error("bad data");
+      resData = d;
+      resMode = "cgi";
+      resFails = 0;
+      paintResources();
+    }).catch(function () {
+      resFails += 1;
+      if (resMode !== "cgi" && resFails >= 2) resMode = "none";   // never worked: stop asking
+      if (resFails >= 3) resData = null;                           // stopped working: show the load average only
+      paintResources();
+    });
+  }
+
+  /* ---- end device resources ---- */
+
   function renderAll() {
     document.getElementById("home-skeleton").hidden = true;
     document.getElementById("home-ready").hidden = false;
@@ -694,6 +770,7 @@
       paintMeters();
       paintAntennas();
       paintCa();
+      paintResources();
       paintTables();
       paintChart("rsrp");
       paintChart("sinr");
@@ -725,6 +802,8 @@
   function poll() {
     if (state.networkFetchPending || paused || document.hidden) return;
     state.networkFetchPending = true;
+    resTick += 1;
+    if ((resTick - 1) % Math.max(1, Math.round(5 / rate)) === 0) pollResources();
     var url = "/cgi-bin/get_atcommand?" + new URLSearchParams({ atcmd: buildCommand() }).toString();
     /* Only the AT request has the ten-second timeout. Ping and uptime failures
        do not invalidate signal readings that were already received. */
@@ -743,6 +822,7 @@
       }).then(function () {
         return fetchText("/cgi-bin/get_uptime", 8000).then(function (uptime) {
           state.uptime = parseUptime(uptime);
+          resLoad = parseLoad(uptime);
         }).catch(function () {
           state.uptime = "Unknown uptime";
         });

@@ -1,0 +1,60 @@
+#!/bin/bash
+# Read-only device resources for the Home page: CPU %, load average, memory and storage, as JSON.
+# Reads only /proc and df. It changes nothing and needs no extra tools.
+# Install: copy to the cgi-bin folder next to get_atcommand and run: chmod 755 get_resources
+
+printf 'Content-Type: application/json\r\nCache-Control: no-store\r\n\r\n'
+
+num() { case "$1" in ''|*[!0-9]*) echo 0 ;; *) echo "$1" ;; esac; }
+
+# CPU: two samples of /proc/stat half a second apart
+cpu_sample() {
+  local l
+  read -r l < /proc/stat
+  set -- $l
+  shift
+  CPU_IDLE=$(( $(num "$4") + $(num "$5") ))
+  CPU_TOTAL=0
+  local v
+  for v in "$@"; do CPU_TOTAL=$(( CPU_TOTAL + $(num "$v") )); done
+}
+cpu_sample; t1=$CPU_TOTAL; i1=$CPU_IDLE
+sleep 0.5 2>/dev/null || sleep 1
+cpu_sample; t2=$CPU_TOTAL; i2=$CPU_IDLE
+dt=$(( t2 - t1 )); di=$(( i2 - i1 ))
+cpu10=0
+[ "$dt" -gt 0 ] && cpu10=$(( (1000 * (dt - di)) / dt ))
+[ "$cpu10" -lt 0 ] && cpu10=0
+[ "$cpu10" -gt 1000 ] && cpu10=1000
+cores=$(grep -c '^cpu[0-9]' /proc/stat 2>/dev/null)
+[ "$(num "$cores")" -lt 1 ] && cores=1
+
+# load average and process counts
+l1=0; l5=0; l15=0; running=0; procs=0
+if read -r a b c d rest < /proc/loadavg; then
+  l1=$a; l5=$b; l15=$c
+  running=$(num "${d%/*}"); procs=$(num "${d#*/}")
+fi
+for v in "$l1" "$l5" "$l15"; do
+  case "$v" in ''|*[!0-9.]*) l1=0; l5=0; l15=0 ;; esac
+done
+
+# memory (kB)
+set -- $(awk '/^MemTotal:/{t=$2} /^MemFree:/{f=$2} /^MemAvailable:/{a=$2} /^Buffers:/{b=$2} /^Cached:/{c=$2} END{ if (a=="") a=f+b+c; print t+0, a+0 }' /proc/meminfo 2>/dev/null)
+memtotal=$(num "$1"); memavail=$(num "$2")
+
+# storage (kB): the data partition and the root file system
+disks=""
+for m in /usrdata /; do
+  set -- $(df -k "$m" 2>/dev/null | awk 'END{ if (NF >= 5) print $(NF-4), $(NF-3) }')
+  size=$(num "$1"); used=$(num "$2")
+  [ "$size" -gt 0 ] || continue
+  disks="{\"mount\":\"$m\",\"sizeKB\":$size,\"usedKB\":$used}"
+  break   # the data partition if it exists, otherwise the root file system (which is always full by design)
+done
+
+up=0
+read -r u rest < /proc/uptime && up=$(num "${u%.*}")
+
+printf '{"cpu":%d.%d,"cores":%d,"load":[%s,%s,%s],"running":%d,"procs":%d,"memTotalKB":%d,"memAvailKB":%d,"disks":[%s],"uptimeSec":%d}\n' \
+  $((cpu10 / 10)) $((cpu10 % 10)) "$(num "$cores")" "$l1" "$l5" "$l15" "$running" "$procs" "$memtotal" "$memavail" "$disks" "$up"

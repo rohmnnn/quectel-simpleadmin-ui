@@ -39,6 +39,7 @@ Checked with the Diagnostics page on firmware **RG501QEUAAR13A01M4G**. The AT ma
 | Settings: DNS proxy | `+QMAP="DHCPV4DNS"` | **Rejected** by this firmware: the controls are greyed out |
 | Device info | `+CGMI`, `+CGMM`, `+QGMR`, `+CIMI`, `+QCCID`/`+ICCID`, `+CGSN`, `+QMAP="LANIP"` | Works. A SIM without a stored number shows no phone number |
 | Interface status | `+QCFG="data_interface"`, `"pcie/mode"`, `+QETH` | Works |
+| Device resources | load average from the existing `get_uptime`; CPU %, memory, storage from the optional `get_resources` | Load average works at once. The rest needs the script (below) |
 
 Other firmware versions may differ: run **Diagnostics** (`/diagnostics.html`) and press **Copy report**. Identifiers
 (IMEI, IMSI, ICCID, phone numbers, IP addresses) are hidden in the report by default.
@@ -46,7 +47,7 @@ Other firmware versions may differ: run **Diagnostics** (`/diagnostics.html`) an
 ## Features
 
 - Responsive shell: desktop sidebar, tablet icon rail, phone tab bar with a More menu; light and dark themes.
-- Home dashboard with SIM/network status, signal scoring, per-antenna values, **carrier aggregation** (the combined 4G carriers such as B3 + B1, with bandwidth, PCI, RSRP and the 5G carrier when connected), trends, uptime, temperature, IPv4 and IPv6.
+- Home dashboard with SIM/network status, **device resources** (CPU %, load, memory, storage), signal scoring, per-antenna values, **carrier aggregation** (the combined 4G carriers such as B3 + B1, with bandwidth, PCI, RSRP and the 5G carrier when connected), trends, uptime, temperature, IPv4 and IPv6.
 - **One-click cell lock** with safety checks (see below).
 - Network configuration: supported LTE/NR bands, APN, SIM slot, preferred mode, NR mode, manual cell lock.
 - SMS inbox, deletion and sending, with an optional default country code.
@@ -88,6 +89,7 @@ www/
 ├── watchcat.html     Watchcat
 ├── diagnostics.html  Read-only AT command compatibility check
 ├── css/app.css       Design tokens, layout, components
+├── cgi-bin/          get_resources (optional, read-only: CPU %, memory, storage)
 └── js/               at.js (modem requests, IP parsing, cell lock helpers), shell.js, home.js, signal.js,
                       network.js, scanner.js, sms.js, settings.js, deviceinfo.js, watchcat.js, diagnostics.js,
                       operators.js
@@ -112,6 +114,16 @@ cp -a /tmp/ui-www/. www/
 and keeps the existing `cgi-bin` folder.) Hard-refresh the browser afterwards: the CSS and JS links carry a version
 query string, so the new files are loaded.
 
+**Device resources (optional script).** The Home page shows the load average without any extra file. For CPU %, memory and
+storage, `www/cgi-bin/get_resources` must be executable on the modem (adb push can drop the executable bit):
+
+```sh
+chmod 755 /usrdata/simpleadmin/www/cgi-bin/get_resources
+```
+
+The script only reads `/proc` and `df`, takes half a second to answer and changes nothing. Home asks for it every 5 seconds
+and stops asking if it is not installed. The shell scripts in `cgi-bin` must keep LF line endings (not CRLF).
+
 **Rollback:** `cd /usrdata/simpleadmin && mv www www.broken && cp -a www.bak-YYYYMMDD-HHMM www`
 
 ## Troubleshooting
@@ -123,6 +135,7 @@ query string, so the new files are loaded.
 | 5G does not show although a phone gets it | 5G shows only while data flows. Start a download, then read the cells: an `NR5G-NSA` row means it works. The page also prints the `AT+QENDC` result (does this LTE cell offer 5G?). Check that your 5G bands (for example n40 and n41) are enabled on the Network page and that antennas are connected to all four ports |
 | After a cell lock the modem only searches | Press **Unlock 4G** and **Unlock 5G**. Most often the cell belongs to another operator, its band is switched off, or it has no real signal |
 | Page says the device did not answer | The AT port may be busy. Wait a few seconds: the UI sends one request at a time and pauses after a timeout |
+| Device resources only show the load | `chmod 755 /usrdata/simpleadmin/www/cgi-bin/get_resources`, then reload |
 | Settings row greyed out | The modem rejected that command (for example the DNS proxy). Diagnostics shows which ones |
 
 ## Security and device configuration
