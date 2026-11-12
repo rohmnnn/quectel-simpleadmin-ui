@@ -606,3 +606,8 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .res-bar.is-warn i { background: #F59E0B; }
 .res-bar.is-bad i { background: #DC2626; }
 .res-sub { display: block; font-size: 12.5px; color: var(--tx2); line-height: 1.4; }
+
+/* resources grid: the boxes always fill the full width (2x2 on a phone, one row of 3-4 on a desktop) */
+.res-grid { display: grid; gap: var(--gap); margin-top: var(--gap); grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.res-note { margin: 8px 2px 0; font-size: 12.5px; color: var(--tx2); }
+.res-note:empty { display: none; }

@@ -48,6 +48,7 @@ Other firmware versions may differ: run **Diagnostics** (`/diagnostics.html`) an
 
 - Responsive shell: desktop sidebar, tablet icon rail, phone tab bar with a More menu; light and dark themes.
 - Home dashboard with SIM/network status, **device resources** (CPU %, load, memory, storage), signal scoring, per-antenna values, **carrier aggregation** (the combined 4G carriers such as B3 + B1, with bandwidth, PCI, RSRP and the 5G carrier when connected), trends, uptime, temperature, IPv4 and IPv6.
+- Connection label: **4G** (one carrier), **4G+** (carrier aggregation), **4G + 5G** (NSA) or **5G SA**.
 - **One-click cell lock** with safety checks (see below).
 - Network configuration: supported LTE/NR bands, APN, SIM slot, preferred mode, NR mode, manual cell lock.
 - SMS inbox, deletion and sending, with an optional default country code.

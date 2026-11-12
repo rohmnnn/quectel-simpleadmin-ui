@@ -112,11 +112,16 @@
     return names[index];
   }
 
+  // number of LTE carriers the modem lists in +QCAINFO (PCC + SCC): 2 or more = carrier aggregation
+  function lteCarrierCount() {
+    return typeof caData === "undefined" ? 0 : caData.carriers.filter(function (c) { return c.rat === "LTE"; }).length;
+  }
+
   function formatMode(mode) {
     if (!mode || mode === "-") return "—";
     if (mode.indexOf("NSA") >= 0) return "4G + 5G";
-    if (mode.indexOf("NR5G-SA") >= 0) return "5G only";
-    if (mode.indexOf("LTE") >= 0) return "4G only";
+    if (mode.indexOf("NR5G-SA") >= 0) return "5G SA";
+    if (mode.indexOf("LTE") >= 0) return lteCarrierCount() > 1 ? "4G+" : "4G";
     if (mode === "Network disconnected") return "Disconnected";
     return "—";
   }
@@ -256,8 +261,8 @@
     var mode = state.network_mode || "";
     if (mode.indexOf("NSA") >= 0 && rat === "5G") note.textContent = "Connected to 4G + 5G (NSA); showing 5G readings.";
     else if (mode.indexOf("NSA") >= 0 && rat === "4G") note.textContent = "5G readings unavailable; showing 4G readings.";
-    else if (rat === "4G") note.textContent = "Connected to 4G only.";
-    else if (rat === "5G") note.textContent = "Connected to 5G only.";
+    else if (rat === "4G") note.textContent = lteCarrierCount() > 1 ? "Connected to 4G+ (" + lteCarrierCount() + " carriers combined)." : "Connected to 4G.";
+    else if (rat === "5G") note.textContent = "Connected to 5G (SA).";
     else note.textContent = "";
     ["rsrp", "rsrq", "sinr"].forEach(paintMeter);
     layoutMeterSegments();
@@ -714,29 +719,37 @@
   }
 
   var RES_ICON_CPU = '<rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/>';
+  var RES_ICON_LOAD = '<path d="M3 17l4-6 4 3 4-8 3 5 3-2"/>';
   var RES_ICON_MEM = '<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v8M11 8v8M15 8v8M6 19v-3M18 19v-3"/>';
   var RES_ICON_DISK = '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>';
 
   function paintResources() {
     var host = document.getElementById("res-infos");
     if (!host) return;
+    var note = document.getElementById("res-note");
     var load = resData && resData.load ? resData.load.map(function (n) { return Number(n).toFixed(2); }) : resLoad;
     var cards = [];
-    var loadText = load ? "Load " + load.join(" · ") + " (1 / 5 / 15 min)" : "";
     if (resData) {
       var cores = Number(resData.cores) || 1;
-      cards.push(resCard(RES_ICON_CPU, "CPU", Number(resData.cpu).toFixed(0) + "%", Number(resData.cpu),
-        loadText + (loadText ? " · " : "") + cores + " core" + (cores > 1 ? "s" : "") + " · " + (Number(resData.running) || 0) + " running of " + (Number(resData.procs) || 0) + " processes"));
+      var cpu = Number(resData.cpu) || 0;
+      cards.push(resCard(RES_ICON_CPU, "CPU", cpu.toFixed(0) + "%", cpu,
+        cores + " core" + (cores > 1 ? "s" : "") + " · " + (Number(resData.running) || 0) + " running of " + (Number(resData.procs) || 0) + " processes"));
+      if (load) cards.push(resCard(RES_ICON_LOAD, "Load average", load[0], Math.min(100, Number(load[0]) / cores * 100),
+        "5 min " + load[1] + " · 15 min " + load[2]));
       var total = Number(resData.memTotalKB) || 0;
       var used = Math.max(0, total - (Number(resData.memAvailKB) || 0));
       if (total) cards.push(resCard(RES_ICON_MEM, "Memory", fmtKB(used) + " / " + fmtKB(total), used / total * 100, fmtKB(total - used) + " available"));
-      (resData.disks || []).slice(0, 2).forEach(function (d) {
+      (resData.disks || []).slice(0, 1).forEach(function (d) {
         var size = Number(d.sizeKB) || 0, u = Number(d.usedKB) || 0;
         if (size) cards.push(resCard(RES_ICON_DISK, "Storage " + String(d.mount).replace(/[^\w/]/g, ""), fmtKB(u) + " / " + fmtKB(size), u / size * 100, fmtKB(size - u) + " free"));
       });
+      if (note) note.textContent = "";
     } else {
-      cards.push(resCard(RES_ICON_CPU, "CPU load", load ? load[0] : "—", null,
-        (loadText || "Load average unavailable") + (resMode === "none" ? "<br>CPU %, memory and storage need cgi-bin/get_resources (see the README)." : "")));
+      // no script: the three load averages that cgi-bin/get_uptime already returns
+      [["Load · 1 min", 0], ["Load · 5 min", 1], ["Load · 15 min", 2]].forEach(function (item) {
+        cards.push(resCard(RES_ICON_LOAD, item[0], load ? load[item[1]] : "—", null, "Processes waiting for the CPU"));
+      });
+      if (note) note.textContent = resMode === "none" ? "CPU %, memory and storage need the optional script cgi-bin/get_resources (see the README)." : "";
     }
     host.innerHTML = cards.join("");
   }
